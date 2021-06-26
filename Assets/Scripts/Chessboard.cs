@@ -36,7 +36,6 @@ public class Chessboard : MonoBehaviour
     [SerializeField] float cellSize = 0.5f;
     [SerializeField] GameObject boardCell;
     [SerializeField] GameObject boardHolder; // 棋盘格子放在这个GameObject下
-    [SerializeField] Vector3 boardPosition;
     [SerializeField] float updateInterval = 1f;
 
     BoardCell[,] _chessboard;
@@ -45,7 +44,9 @@ public class Chessboard : MonoBehaviour
     bool _isContinuousUpdate;
     float _nextUpdateTime;
 
-    [HideInInspector] public AssetBundle cellBundle;
+    // [HideInInspector] public AssetBundle cellBundle;
+    public Sprite whiteCell;
+    public Sprite blackCell;
 
 
     public void UpdateOnce()
@@ -68,6 +69,7 @@ public class Chessboard : MonoBehaviour
 
     public void ClearBoard()
     {
+        StopUpdate();
         foreach (var cell in _chessboard)
         {
             cell.Reset();
@@ -87,7 +89,7 @@ public class Chessboard : MonoBehaviour
     
     void Start()
     {
-        cellBundle = AssetBundle.LoadFromFile("Assets/Artworks/Bundles/cell.unity3d");
+        // cellBundle = AssetBundle.LoadFromFile("Assets/Artworks/Bundles/cell.unity3d");
         boardCell.transform.localScale = new Vector3(cellSize, cellSize, 1);
         _cellOffset = new Vector3(-(width-1f)/2f, -(height-1f)/2f, 0f);
         _nextUpdateTime = updateInterval;
@@ -98,7 +100,7 @@ public class Chessboard : MonoBehaviour
         if (boardHolder == null)
         {
             boardHolder = new GameObject("Board");
-            boardHolder.transform.position = boardPosition;
+            boardHolder.AddComponent<BoardHolderMovement>();
         }
         
         for (int i = 0; i < width; i++)

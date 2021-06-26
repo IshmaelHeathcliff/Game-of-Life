@@ -12,7 +12,7 @@ public class BoardCell: MonoBehaviour
         set
         {
             _status = value;
-            _renderer.sprite = Chessboard.Instance.cellBundle.LoadAsset(value ? "white.png" : "black.png") as Sprite;
+            _renderer.sprite = value? Chessboard.Instance.whiteCell : Chessboard.Instance.blackCell;
         }
     }
     public bool NextStatus { get; set; }
