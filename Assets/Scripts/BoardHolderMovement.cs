@@ -25,10 +25,9 @@ public class BoardHolderMovement : MonoBehaviour
         }
         if (Input.GetMouseButton(1))
         {
-            var currentMousePosition = _camera.ScreenToWorldPoint(Input.mousePosition);
+            Vector3 currentMousePosition = _camera.ScreenToWorldPoint(Input.mousePosition);
             _targetPosition = currentMousePosition - _startMousePosition + _startBoardPosition;
         }
-
 
         if (Vector3.Magnitude(_targetPosition - _transform.position) > Mathf.Epsilon)
             _transform.position = Vector3.Lerp(_transform.position, _targetPosition, smoothAmount*Time.deltaTime);
