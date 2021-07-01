@@ -26,8 +26,8 @@ public class Chessboard : MonoBehaviour
         }
     }
 
-    [SerializeField][Range(0, 100)] int height = 10;
-    [SerializeField][Range(0, 100)] int width = 10;
+    [SerializeField] int height = 10;
+    [SerializeField] int width = 10;
     [SerializeField][Range(0, 8)] int liveUpThreshold = 3;
     [SerializeField][Range(0, 8)] int liveDownThreshold = 2;
     [SerializeField][Range(0, 8)] int bornUpThreshold = 3;
@@ -70,7 +70,7 @@ public class Chessboard : MonoBehaviour
     public void ClearBoard()
     {
         StopUpdate();
-        foreach (var cell in _chessboard)
+        foreach (BoardCell cell in _chessboard)
         {
             cell.Reset();
         }

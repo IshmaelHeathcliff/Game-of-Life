@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class BoardHolderMovement : MonoBehaviour
 {
@@ -10,6 +11,9 @@ public class BoardHolderMovement : MonoBehaviour
     Vector3 _targetPosition;
     Camera _camera;
     Transform _transform;
+
+    [HideInInspector] public bool isBoardMoving;
+
     void Start()
     {
         _camera = Camera.main;
@@ -29,7 +33,14 @@ public class BoardHolderMovement : MonoBehaviour
             _targetPosition = currentMousePosition - _startMousePosition + _startBoardPosition;
         }
 
-        if (Vector3.Magnitude(_targetPosition - _transform.position) > Mathf.Epsilon)
+        if (Vector3.Magnitude(_targetPosition - _transform.position) > 0.1f)
+        {
+            isBoardMoving = true;
             _transform.position = Vector3.Lerp(_transform.position, _targetPosition, smoothAmount*Time.deltaTime);
+        }
+        else
+        {
+            isBoardMoving = false;
+        }
     }
 }
