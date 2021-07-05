@@ -40,11 +40,13 @@ public class ExtendableBoard : MonoBehaviour
     [SerializeField] float cellInterval = 0.1f;
     [SerializeField] float cellSize = 0.5f;
     [SerializeField] float updateInterval = 1f;
+    [SerializeField] int poolSizeStep = 10;
 
     [SerializeField] GameObject boardCell;
     [SerializeField] GameObject boardHolder; // 棋盘格子放在这个GameObject下
     [SerializeField] GameObject updateStatusText;
 
+    int _currentPoolObject;
     bool _canUpdate;
     bool _canPutCell = true;
     bool _isContinuousUpdate;
@@ -71,6 +73,9 @@ public class ExtendableBoard : MonoBehaviour
     // 列向量
     List<List<ExtendableCell>> _matrix;
     int _matrixRows;
+
+    //
+    List<GameObject> _cellPool = new List<GameObject>();
 
     void Initialise(int rows=11, int columns=11)
     {
@@ -123,6 +128,29 @@ public class ExtendableBoard : MonoBehaviour
         {
             ExtendMatRows(y < _matrixRows? _matrixRows/2 : y);
         }
+    }
+
+    void IncreasePoolSize()
+    {
+        for (var i = 0; i < poolSizeStep; i++)
+        {
+            GameObject obj = Instantiate(boardCell, boardHolder.transform);
+            obj.SetActive(false);
+            _cellPool.Add(obj);
+        }
+    }
+    GameObject GetCell()
+    {
+        foreach (GameObject cell in _cellPool.Where(cell => !cell.activeSelf))
+        {
+            cell.SetActive(true);
+            return cell;
+        }
+
+        GameObject obj = Instantiate(boardCell, boardHolder.transform);
+        _cellPool.Add(obj);
+        IncreasePoolSize();
+        return obj;
     }
 
     void BoardUpdate()
@@ -180,15 +208,15 @@ public class ExtendableBoard : MonoBehaviour
             {
                 CurrentCell = _matrix[i][j];
                 if (!CurrentCell.Status) continue;
-                ExtendTo(i - _matrix.Count/2, j - _matrixRows/2);
                 if (CurrentCell.BoardCell == null)
                 {
                     var boardPosition = new Vector3(i - _matrix.Count / 2, j - _matrixRows / 2);
-                    GameObject cell = Instantiate(boardCell, boardHolder.transform);
+                    GameObject cell = GetCell();
                     cell.transform.localPosition = boardPosition * (cellSize + cellInterval);
                     cell.name = $"BoardCell{boardPosition.x}, {boardPosition.y}";
                     CurrentCell.BoardCell = cell;
                 }
+                ExtendTo(i - _matrix.Count/2, j - _matrixRows/2);
             }
         }
         
@@ -261,10 +289,11 @@ public class ExtendableBoard : MonoBehaviour
             boardHolder = new GameObject("Board");
             boardHolder.AddComponent<BoardHolderMovement>();
         }
-
+        
+        IncreasePoolSize();
+        
         // foreach (Cell cell in _matrix.SelectMany(row => row)) Debug.Log(cell.Status);
     }
-    
 
     void Update()
     {
@@ -303,7 +332,7 @@ public class ExtendableBoard : MonoBehaviour
             CurrentCell.Status = true;
             
             // 实例化棋盘单元
-            GameObject cell = Instantiate(boardCell, boardHolder.transform);
+            GameObject cell = GetCell();
             cell.transform.localPosition = new Vector3(boardX, boardY, 0) * (cellSize + cellInterval);
             cell.name = $"BoardCell{boardX}, {boardY}";
             CurrentCell.BoardCell = cell;

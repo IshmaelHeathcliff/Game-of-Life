@@ -9,19 +9,9 @@ public class ExtendableBoardCell : MonoBehaviour, IPointerEnterHandler, IPointer
     bool _canDestroy;
     public ExtendableBoard.ExtendableCell Cell;
 
-    void Awake()
+    void OnEnable()
     {
         Cell = ExtendableBoard.Instance.CurrentCell;
-    }
-
-    // Update is called once per frame
-    void FixedUpdate()
-    {
-        if (!Cell.Status)
-        {
-            DestroyImmediate(gameObject);
-            DestroyImmediate(this);
-        }
     }
 
     public void OnPointerEnter(PointerEventData eventData)
@@ -36,11 +26,18 @@ public class ExtendableBoardCell : MonoBehaviour, IPointerEnterHandler, IPointer
 
     void Update()
     {
+        if (!Cell.Status)
+        {
+            gameObject.SetActive(false);
+            Cell.BoardCell = null;
+            return;
+        }
+        
         if (_canDestroy && Input.GetMouseButtonUp(0))
         {
             Cell.Status = false;
-            DestroyImmediate(gameObject);
-            DestroyImmediate(this);
+            gameObject.SetActive(false);
+            Cell.BoardCell = null;
         }
     }
 }
