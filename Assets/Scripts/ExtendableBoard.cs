@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.Collections;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public class ExtendableBoard : MonoBehaviour
@@ -45,13 +46,13 @@ public class ExtendableBoard : MonoBehaviour
     [SerializeField] GameObject updateStatusText;
 
     bool _canUpdate;
+    bool _canPutCell = true;
     bool _isContinuousUpdate;
     float _nextUpdateTime;
     Camera _camera;
     BoardHolderMovement _boardHolderMovement;
     Text _updateStatusText;
 
-    [HideInInspector] public bool canPutCell = true;
     public ExtendableCell CurrentCell;
     
     public class ExtendableCell
@@ -67,78 +68,61 @@ public class ExtendableBoard : MonoBehaviour
         }
     }
     
-    // _matrix每行如下所示对应一个棋盘
-    // <-7 6-->
-    // <-3 2-->
-    // <-1 0-->
-    // <-5 4-->
-    // <-9 8-->
+    // 列向量
     List<List<ExtendableCell>> _matrix;
-    int _matrixColumns;
+    int _matrixRows;
 
-    // 解决棋盘前两行的特殊相邻行问题
-    readonly int[] _sp = new[] {1, 0, 3, 2};
-
-    void Initialise(int rows=6, int columns=2)
+    void Initialise(int rows=11, int columns=11)
     {
         _matrix = new List<List<ExtendableCell>>();
-        _matrixColumns = columns;
-        ExtendMatRows(rows);
+        _matrixRows = rows;
+        ExtendMatColumns(columns);
     }
 
-    void ExtendMatRows(int row=1)
+    void ExtendMatRows(int rowPair=1)
     {
-        for (var i = 0; i < row; i++)
-        {        
-            var list = new List<ExtendableCell>();
-            for(var k=0; k<_matrixColumns;k++) list.Add(new ExtendableCell());
-            _matrix.Add(list);
-        }
-    }
-
-    void ExtendMatColumns(int column=1)
-    {
-        if (column % 2 == 1) column++;
         foreach (var list in _matrix)
         {
-            for (var i = 0; i < column; i++)
+            for (var i = 0; i < rowPair; i++)
             {
                 list.Add(new ExtendableCell());
+                list.Insert(0, new ExtendableCell());
             }
         }
-        _matrixColumns += column;
+        _matrixRows += 2*rowPair;
+
+    }
+
+    void ExtendMatColumns(int columnPair=1)
+    {
+        for (var i = 0; i < columnPair; i++)
+        {        
+            var list1 = new List<ExtendableCell>();
+            var list2 = new List<ExtendableCell>();
+            for (var k = 0; k < _matrixRows; k++)
+            {
+                list1.Add(new ExtendableCell());
+                list2.Add(new ExtendableCell());
+            }
+            _matrix.Add(list1);
+            _matrix.Insert(0, list2);
+        }
+
     }
 
     void ExtendTo(int x, int y)
     {
-        x += 5;
-        y += 2;
-        if (_matrix.Count < x)
+        x = Math.Abs(x) + 1;
+        y = Math.Abs(y) + 1;
+        if (_matrix.Count < 2 * x + 1)
         {
-            ExtendMatRows(x -_matrix.Count);
+            ExtendMatColumns(x < _matrix.Count? _matrix.Count/2 : x);
         }
 
-        if (_matrixColumns < y)
+        if (_matrixRows < 2 * y + 1)
         {
-            ExtendMatColumns(y - _matrixColumns);
+            ExtendMatRows(y < _matrixRows? _matrixRows/2 : y);
         }
-    }
-
-    static Vector3 MatrixPositionToBoardPosition(int matRow, int matColumn)
-    {
-        int boardRow = matRow / 2 % 2 == 0 ? -matRow / 2 / 2 : matRow / 2 / 2 + 1;
-        int boardColumn = matRow % 2 == 0 ? matColumn : -matColumn - 1;
-        return new Vector3(boardColumn, boardRow, 0);
-    }
-
-    static int[] BoardPositionToMatrixPosition(int[] boardPosition)
-    {
-        int x = boardPosition[0];
-        int y = boardPosition[1];
-        int offset = x < 0 ? 1 : 0;
-        int matRow = y > 0 ? 4 * y - 2 + offset : -y * 4 + offset;
-        int matColumn = x < 0 ? -x - 1 : x;
-        return new []{matRow, matColumn};
     }
 
     void BoardUpdate()
@@ -146,7 +130,7 @@ public class ExtendableBoard : MonoBehaviour
         // 根据存活cell计算存活邻居
         for (var i = 0; i < _matrix.Count; i++)
         {
-            for (var j = 0; j < _matrixColumns; j++)
+            for (var j = 0; j < _matrixRows; j++)
             {
                 if (!_matrix[i][j].Status) continue;
                 for (int r = -1; r < 2; r++)
@@ -154,20 +138,10 @@ public class ExtendableBoard : MonoBehaviour
                     for (int c = -1; c < 2; c++)
                     {
                         if (r == 0 && c == 0) continue;
-                        int rr = 4*r + i;
+                        int rr = r + i;
                         int cc = c + j;
-                        
-                        // 解决棋盘前两行的特殊相邻行问题
-                        if (rr < 0) rr = _sp[-rr - 1]; 
-                            
-                        // 棋盘相邻列在矩阵中的跨行问题
-                        if (cc < 0)
-                        {
-                            cc = 0;
-                            rr = rr % 2 == 0 ? rr + 1 : rr - 1;
-                        }
-                        
-                        if (rr < _matrix.Count && cc < _matrixColumns)
+
+                        if (rr < _matrix.Count && rr >= 0  && cc < _matrixRows && cc >= 0)
                         {
                             _matrix[rr][cc].LiveNeighbours++;
                         }
@@ -202,17 +176,17 @@ public class ExtendableBoard : MonoBehaviour
         // 根据状态更新棋盘
         for (var i = 0; i < _matrix.Count; i++)
         {
-            for (var j = 0; j < _matrixColumns; j++)
+            for (var j = 0; j < _matrixRows; j++)
             {
                 CurrentCell = _matrix[i][j];
                 if (!CurrentCell.Status) continue;
-                ExtendTo(i, j);
+                ExtendTo(i - _matrix.Count/2, j - _matrixRows/2);
                 if (CurrentCell.BoardCell == null)
                 {
-                    Vector3 boardPosition = MatrixPositionToBoardPosition(i, j);
+                    var boardPosition = new Vector3(i - _matrix.Count / 2, j - _matrixRows / 2);
                     GameObject cell = Instantiate(boardCell, boardHolder.transform);
                     cell.transform.localPosition = boardPosition * (cellSize + cellInterval);
-                    cell.name = $"BoardCell{boardPosition.y}, {boardPosition.x}";
+                    cell.name = $"BoardCell{boardPosition.x}, {boardPosition.y}";
                     CurrentCell.BoardCell = cell;
                 }
             }
@@ -232,6 +206,7 @@ public class ExtendableBoard : MonoBehaviour
         _isContinuousUpdate = true;
         _canUpdate = true;
         _updateStatusText.text = "On";
+        _canPutCell = false;
     }
 
     public void StopUpdate()
@@ -239,11 +214,18 @@ public class ExtendableBoard : MonoBehaviour
         _canUpdate = false;
         _isContinuousUpdate = false;
         _updateStatusText.text = "Off";
+        _canPutCell = true;
     }
 
-    public void ClearBoard()
+    public void Clear()
+    {
+        StartCoroutine($"ClearBoard");
+    }
+
+    IEnumerator ClearBoard()
     {
         StopUpdate();
+        yield return null;
         foreach (ExtendableCell cell in _matrix.SelectMany(row => row))
         {
             cell.Status = false;
@@ -283,7 +265,8 @@ public class ExtendableBoard : MonoBehaviour
         // foreach (Cell cell in _matrix.SelectMany(row => row)) Debug.Log(cell.Status);
     }
     
-    void FixedUpdate()
+
+    void Update()
     {
         if (_canUpdate && !_isContinuousUpdate)
         {
@@ -300,33 +283,29 @@ public class ExtendableBoard : MonoBehaviour
             }
             else
             {
-                _nextUpdateTime -= Time.fixedDeltaTime;
+                _nextUpdateTime -= Time.deltaTime;
             }
         }
         
-    }
-
-    void Update()
-    {
-        if (canPutCell && !_boardHolderMovement.isBoardMoving && Input.GetMouseButtonUp(0))
+        if (_canPutCell && Input.GetMouseButtonUp(0) && !_boardHolderMovement.isBoardMoving)
         {
-            // 根据鼠标位置计算棋盘位置和矩阵位置
+            if (EventSystem.current.IsPointerOverGameObject()) return;
+                // 根据鼠标位置计算棋盘位置和矩阵位置
             Vector3 mousePosition = _camera.ScreenToWorldPoint(Input.mousePosition);
             Vector3 localMousePosition =
                 boardHolder.transform.InverseTransformPoint(mousePosition) / (cellSize + cellInterval);
-            var boardPosition = new[] {Convert.ToInt32(localMousePosition.x), Convert.ToInt32(localMousePosition.y)};
-            int[] matrixPosition = BoardPositionToMatrixPosition(boardPosition);
-
+            var boardX = Convert.ToInt32(localMousePosition.x);
+            var boardY = Convert.ToInt32(localMousePosition.y);
             
             // 调整矩阵状态
-            ExtendTo(matrixPosition[0], matrixPosition[1]);
-            CurrentCell = _matrix[matrixPosition[0]][matrixPosition[1]];
+            ExtendTo(boardX, boardY);
+            CurrentCell = _matrix[boardX + _matrix.Count/2][boardY + _matrixRows/2];
             CurrentCell.Status = true;
             
             // 实例化棋盘单元
             GameObject cell = Instantiate(boardCell, boardHolder.transform);
-            cell.transform.localPosition = new Vector3(boardPosition[0], boardPosition[1], 0) * (cellSize + cellInterval);
-            cell.name = $"BoardCell{boardPosition[1]}, {boardPosition[0]}";
+            cell.transform.localPosition = new Vector3(boardX, boardY, 0) * (cellSize + cellInterval);
+            cell.name = $"BoardCell{boardX}, {boardY}";
             CurrentCell.BoardCell = cell;
         }
     }
