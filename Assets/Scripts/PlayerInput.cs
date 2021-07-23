@@ -8,26 +8,16 @@ public class PlayerInput : InputComponent
     static PlayerInput _instance;
     public static PlayerInput Instance => _instance;
 
-    [Serializable]
-    public struct ButtonKeyCode
-    {
-        public string name;
-        public KeyCode key;
+    #region Buttons
+    // 按键设置, 需在Awake()中添加至Buttons
+    public readonly InputButton UpdateOnce = new InputButton(KeyCode.Space);
 
-        public ButtonKeyCode(string name, KeyCode key)
-        {
-            this.name = name;
-            this.key = key;
-        }
-    }
+
+    #endregion
+
     
-    [SerializeField]
-    ButtonKeyCode[] buttonsKeyCode =
-    {
-        new ButtonKeyCode("LeftClick", KeyCode.Mouse0),
-    };
-
-    public Dictionary<string, InputButton> Buttons { get; } = new Dictionary<string, InputButton>();
+    
+    readonly List<InputButton> Buttons = new List<InputButton>();
 
     public bool HaveControl { get; private set; } = true;
 
@@ -35,30 +25,28 @@ public class PlayerInput : InputComponent
     {
         if (_instance == null)
             _instance = this;
-
-        foreach (var button in buttonsKeyCode)
-            Buttons.Add(button.name, new InputButton(button.key));
+        Buttons.Add(UpdateOnce);
     }
 
     protected override void GetInputs(bool fixedUpdateHappened)
     {
-        foreach (var button in Buttons) 
-            button.Value.Get(fixedUpdateHappened);
+        foreach (InputButton button in Buttons) 
+            button.Get(fixedUpdateHappened);
     }
 
     public override void GainControl()
     {
         HaveControl = true;
 
-        foreach (var button in Buttons) 
-            GainControl(button.Value);
+        foreach (InputButton button in Buttons) 
+            GainControl(button);
     }
 
     public override void ReleaseControl(bool resetValue = true)
     {
         HaveControl = false;
 
-        foreach (var button in Buttons)
-            ReleaseControl(button.Value, resetValue);
+        foreach (InputButton button in Buttons)
+            ReleaseControl(button, resetValue);
     }
 }

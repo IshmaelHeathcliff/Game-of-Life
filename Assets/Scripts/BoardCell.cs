@@ -1,84 +1,43 @@
-﻿using System.Collections.Generic;
-using UnityEditor;
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.U2D;
 
-public class BoardCell: MonoBehaviour
+public class BoardCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
-    bool _status;
-    public bool Status {
-        get => _status;
-        set
-        {
-            _status = value;
-            _renderer.sprite = value? Chessboard.Instance.whiteCell : Chessboard.Instance.blackCell;
-        }
-    }
-    public bool NextStatus { get; set; }
+    bool _canDestroy;
+    public ChessBoard.Cell Cell;
 
-    SpriteRenderer _renderer;
-    bool _checkMouse;
-
-    public void ChangeStatus()
+    void OnEnable()
     {
-        Status = !Status;
+        Cell = ChessBoard.Instance.CurrentCell;
     }
 
-    public void Reset()
+    public void OnPointerEnter(PointerEventData eventData)
     {
-        Status = false;
+        _canDestroy = true;
     }
 
-    void PointerEnter()
+    public void OnPointerExit(PointerEventData eventData)
     {
-        _checkMouse = true;
-    }
-
-    void PointerExit()
-    {
-        _checkMouse = false;
-    }
-    
-
-    void AddPointEvent()
-    {
-        var eventTrigger = GetComponent<EventTrigger>();
-
-        eventTrigger.triggers = new List<EventTrigger.Entry>();
-
-        var pointerEnter = new EventTrigger.Entry
-        {
-            eventID = EventTriggerType.PointerEnter,
-            callback = new EventTrigger.TriggerEvent()
-        };
-        
-        var pointerExit = new EventTrigger.Entry
-        {
-            eventID = EventTriggerType.PointerExit,
-            callback = new EventTrigger.TriggerEvent()
-        };
-
-        pointerEnter.callback.AddListener((data) => { PointerEnter(); });
-        pointerExit.callback.AddListener((data) => { PointerExit(); });
-
-        eventTrigger.triggers.Add(pointerEnter);
-        eventTrigger.triggers.Add(pointerExit);
-    }
-
-    void Start()
-    {
-        _renderer = GetComponent<SpriteRenderer>();
-        AddPointEvent();
+        _canDestroy = false;
     }
 
     void Update()
     {
-        if (_checkMouse && Input.GetMouseButtonUp(0))
+        if (!Cell.Status)
         {
-            ChangeStatus();
+            gameObject.SetActive(false);
+            Cell.BoardCell = null;
+            return;
         }
-            
+        
+        if (_canDestroy && Input.GetMouseButtonUp(0))
+        {
+            Cell.Status = false;
+            gameObject.SetActive(false);
+            Cell.BoardCell = null;
+        }
     }
-
 }
