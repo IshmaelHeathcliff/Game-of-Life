@@ -28,8 +28,8 @@ public class BoardHolderMovement : MonoBehaviour
     void Zoom()
     {
         float scroll = Input.GetAxis("Mouse ScrollWheel");
-        if (scroll < 0) _targetSize *= zoomSpeed;
-        else if (scroll > 0) _targetSize /= zoomSpeed;
+        if (scroll > 0) _targetSize *= zoomSpeed;
+        else if (scroll < 0) _targetSize /= zoomSpeed;
 
         var targetScale = new Vector2(_targetSize, _targetSize);
 

@@ -14,8 +14,7 @@ public class ExtendableMatrix<T>
     {
         Matrix = new List<List<T>>();
         Rows = rows;
-        Columns = columns;
-        ExtendMatColumns(columns);
+        ExtendMatColumns(columns / 2 + 1);
     }
 
     public void ExtendMatRows(int rowPair=1)
@@ -47,15 +46,16 @@ public class ExtendableMatrix<T>
             Matrix.Insert(0, list2);
         }
 
+        Columns += 2 * columnPair;
     }
 
     public void ExtendTo(int x, int y)
     {
         x = Math.Abs(x) + 1;
         y = Math.Abs(y) + 1;
-        if (Matrix.Count < 2 * x + 1)
+        if (Columns < 2 * x + 1)
         {
-            ExtendMatColumns(x < Matrix.Count? Matrix.Count/2 : x);
+            ExtendMatColumns(x < Columns? Columns/2 : x);
         }
 
         if (Rows < 2 * y + 1)

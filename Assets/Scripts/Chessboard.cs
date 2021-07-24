@@ -46,7 +46,7 @@ public class ChessBoard : MonoBehaviour
     [SerializeField] GameObject updateStatusText;
 
     bool _canUpdate;
-    bool _canPutCell = true;
+    public bool canPutCell = true;
     bool _isContinuousUpdate;
     float _nextUpdateTime;
     Camera _camera;
@@ -153,7 +153,7 @@ public class ChessBoard : MonoBehaviour
         _isContinuousUpdate = true;
         _canUpdate = true;
         _updateStatusText.text = "On";
-        _canPutCell = false;
+        canPutCell = false;
     }
 
     public void StopUpdate()
@@ -161,7 +161,7 @@ public class ChessBoard : MonoBehaviour
         _canUpdate = false;
         _isContinuousUpdate = false;
         _updateStatusText.text = "Off";
-        _canPutCell = true;
+        canPutCell = true;
     }
 
     public void Clear()
@@ -241,7 +241,7 @@ public class ChessBoard : MonoBehaviour
             UpdateOnce();
         }
         
-        if (_canPutCell && Input.GetMouseButtonUp(0) && !_boardHolderMovement.isBoardMoving)
+        if (canPutCell && Input.GetMouseButtonUp(0) && !_boardHolderMovement.isBoardMoving)
         {
             // 鼠标不在UI上
             if (EventSystem.current.IsPointerOverGameObject()) return;

@@ -26,6 +26,8 @@ public class BoardCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
 
     void Update()
     {
+        if (!ChessBoard.Instance.canPutCell) _canDestroy = false;
+        
         if (!Cell.Status)
         {
             gameObject.SetActive(false);
