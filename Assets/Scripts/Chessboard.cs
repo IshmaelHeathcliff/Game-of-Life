@@ -3,8 +3,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Collections;
+using Unity.Jobs;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Rendering.VirtualTexturing;
 using UnityEngine.UI;
 
 public class ChessBoard : MonoBehaviour
@@ -33,27 +35,29 @@ public class ChessBoard : MonoBehaviour
         }
     }
 
+    [Header("Game Rules")]
     [SerializeField][Range(0, 8)] int liveUpThreshold = 3;
     [SerializeField][Range(0, 8)] int liveDownThreshold = 2;
     [SerializeField][Range(0, 8)] int bornUpThreshold = 3;
     [SerializeField][Range(0, 8)] int bornDownThreshold = 3;
+    
+    [Header("Board Settings")]
     [SerializeField] float cellInterval = 0.1f;
     [SerializeField] float cellSize = 0.5f;
     [SerializeField] float updateInterval = 1f;
-
     [SerializeField] GameObject boardCell;
     [SerializeField] GameObject boardHolder; // 棋盘格子放在这个GameObject下
     [SerializeField] GameObject updateStatusText;
 
     bool _canUpdate;
-    public bool canPutCell = true;
+    [HideInInspector] public bool canPutCell = true;
     bool _isContinuousUpdate;
     float _nextUpdateTime;
     Camera _camera;
     BoardHolderMovement _boardHolderMovement;
     Text _updateStatusText;
 
-    public BoardCellPool pool;
+    BoardCellPool pool;
     public Cell CurrentCell;
     
     public class Cell
@@ -212,7 +216,6 @@ public class ChessBoard : MonoBehaviour
 
         pool = boardHolder.GetComponent<BoardCellPool>();
         pool.boardCell = boardCell;
-        // foreach (Cell cell in _matrix.SelectMany(row => row)) Debug.Log(cell.Status);
     }
 
     void Update()
@@ -241,7 +244,7 @@ public class ChessBoard : MonoBehaviour
             UpdateOnce();
         }
         
-        if (canPutCell && Input.GetMouseButtonUp(0) && !_boardHolderMovement.isBoardMoving)
+        if (Input.GetMouseButtonUp(0) && canPutCell && !_boardHolderMovement.isBoardMoving)
         {
             // 鼠标不在UI上
             if (EventSystem.current.IsPointerOverGameObject()) return;
