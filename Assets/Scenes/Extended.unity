@@ -1084,6 +1084,7 @@ SpriteRenderer:
   m_CastShadows: 0
   m_ReceiveShadows: 0
   m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
@@ -1420,9 +1421,9 @@ MonoBehaviour:
   liveDownThreshold: 2
   bornUpThreshold: 3
   bornDownThreshold: 3
-  cellInterval: 0
+  cellInterval: 0.1
   cellSize: 0.5
-  updateInterval: 0.1
+  updateInterval: 1
   boardCell: {fileID: 4013230465801230699, guid: d61c5756f9e20b44db7d1fac3fdbfac7, type: 3}
   boardHolder: {fileID: 2138117155}
   updateStatusText: {fileID: 962908606}

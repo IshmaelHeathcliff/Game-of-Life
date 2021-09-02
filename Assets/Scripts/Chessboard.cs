@@ -5,10 +5,10 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class ChessBoard : MonoBehaviour
+public class Chessboard : MonoBehaviour
 {
-    static ChessBoard _instance;
-    public static ChessBoard Instance {
+    static Chessboard _instance;
+    public static Chessboard Instance {
         get
         {
             if (_instance != null)
@@ -18,13 +18,13 @@ public class ChessBoard : MonoBehaviour
             
             if (_instance == null)
             {
-                _instance = FindObjectOfType<ChessBoard>();
+                _instance = FindObjectOfType<Chessboard>();
             }
 
             if (_instance == null)
             {
                 var obj = new GameObject("Chessboard");
-                _instance = obj.AddComponent<ChessBoard>();
+                _instance = obj.AddComponent<Chessboard>();
             }
 
             return _instance;
@@ -38,7 +38,7 @@ public class ChessBoard : MonoBehaviour
     [SerializeField][Range(0, 8)] int bornDownThreshold = 3;
     
     [Header("Board Settings")]
-    [SerializeField] float cellInterval = 0.1f;
+    [SerializeField] float cellInterval = 0f;
     [SerializeField] float cellSize = 0.5f;
     [SerializeField] float updateInterval = 1f;
     [SerializeField] GameObject boardCell;

@@ -7,11 +7,11 @@ using UnityEngine.EventSystems;
 public class BoardCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     bool _canDestroy;
-    public ChessBoard.Cell Cell;
+    public Chessboard.Cell Cell;
 
     void OnEnable()
     {
-        Cell = ChessBoard.Instance.CurrentCell;
+        Cell = Chessboard.Instance.CurrentCell;
     }
 
     public void OnPointerEnter(PointerEventData eventData)
@@ -26,7 +26,7 @@ public class BoardCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
 
     void Update()
     {
-        if (!ChessBoard.Instance.canPutCell) _canDestroy = false;
+        if (!Chessboard.Instance.canPutCell) _canDestroy = false;
         
         if (!Cell.Status)
         {
