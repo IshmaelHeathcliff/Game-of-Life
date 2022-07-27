@@ -1421,7 +1421,7 @@ MonoBehaviour:
   liveDownThreshold: 2
   bornUpThreshold: 3
   bornDownThreshold: 3
-  cellInterval: 0.1
+  cellInterval: 0
   cellSize: 0.5
   updateInterval: 1
   boardCell: {fileID: 4013230465801230699, guid: d61c5756f9e20b44db7d1fac3fdbfac7, type: 3}
