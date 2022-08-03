@@ -1,267 +1,96 @@
 using System;
-using System.Collections;
-using System.Linq;
-using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.UI;
+using Unity.VisualScripting;
+using UnityEditor.Experimental.GraphView;
 
-public class Chessboard : MonoBehaviour
+public class Chessboard
 {
-    static Chessboard _instance;
-    public static Chessboard Instance {
-        get
-        {
-            if (_instance != null)
-            {
-                return _instance;
-            }
-            
-            if (_instance == null)
-            {
-                _instance = FindObjectOfType<Chessboard>();
-            }
-
-            if (_instance == null)
-            {
-                var obj = new GameObject("Chessboard");
-                _instance = obj.AddComponent<Chessboard>();
-            }
-
-            return _instance;
-        }
+    public Chessboard(int row = 21, int column = 21, 
+        int surviveDownThreshold = 2, int surviveUpThreshold = 3,
+        int bornDownThreshold = 3, int bornUpThreshold = 3)
+    {
+        Rows = row;
+        Columns = column;
+        _surviveDownThreshold = surviveDownThreshold;
+        _surviveUpThreshold = surviveUpThreshold;
+        _bornDownThreshold = bornDownThreshold;
+        _bornUpThreshold = bornUpThreshold;
+        Status = new bool[Rows, Columns];
+        _nextBoard = new bool[Rows, Columns];
     }
 
-    [Header("Game Rules")]
-    [SerializeField][Range(0, 8)] int liveUpThreshold = 3;
-    [SerializeField][Range(0, 8)] int liveDownThreshold = 2;
-    [SerializeField][Range(0, 8)] int bornUpThreshold = 3;
-    [SerializeField][Range(0, 8)] int bornDownThreshold = 3;
-    
-    [Header("Board Settings")]
-    [SerializeField] float cellInterval = 0f;
-    [SerializeField] float cellSize = 0.5f;
-    [SerializeField] float updateInterval = 1f;
-    [SerializeField] GameObject boardCell;
-    [SerializeField] GameObject boardHolder; // 棋盘格子放在这个GameObject下
-    [SerializeField] GameObject updateStatusText;
+    readonly int _surviveUpThreshold;
+    readonly int _surviveDownThreshold;
+    readonly int _bornUpThreshold;
+    readonly int _bornDownThreshold;
+    bool[,] _nextBoard;
 
-    bool _canUpdate;
-    [HideInInspector] public bool canPutCell = true;
-    bool _isContinuousUpdate;
-    float _nextUpdateTime;
-    Camera _camera;
-    BoardHolderMovement _boardHolderMovement;
-    Text _updateStatusText;
+    public int Rows { get; private set; }
+    public int Columns { get; private set; }
 
-    BoardCellPool pool;
-    public Cell CurrentCell;
-    
-    public class Cell
+    public bool[,] Status { get; private set; }
+
+    int CountNeighborhood(int x, int y)
     {
-        public bool Status;
-        public int LiveNeighbours;
-        public GameObject BoardCell;
-
-        public Cell()
+        int liveNeighbors = 0;
+        for (int i = -1; i <= 1; i++)
         {
-            Status = false;
-            LiveNeighbours = 0;
-        }
-    }
-    
-    // 列向量
-    ExtendableMatrix<Cell> _board;
-
-    void BoardUpdate()
-    {
-        // 根据存活cell计算存活邻居
-        for (var i = 0; i < _board.Columns; i++)
-        {
-            for (var j = 0; j < _board.Rows; j++)
+            for (int j = -1; j <= 1; j++)
             {
-                if (!_board.Matrix[i][j].Status) continue;
-                for (int r = -1; r < 2; r++)
-                {
-                    for (int c = -1; c < 2; c++)
-                    {
-                        if (r == 0 && c == 0) continue;
-                        int rr = r + i;
-                        int cc = c + j;
-
-                        if (rr < _board.Columns && rr >= 0  && cc < _board.Rows && cc >= 0)
-                        {
-                            _board.Matrix[rr][cc].LiveNeighbours++;
-                        }
-                    }
-                }
+                if(i==0 && j==0) continue;
+                liveNeighbors += Status[x + i, y + j] ? 1 : 0;
             }
         }
-        
-        // 根据存活邻居数决定新的状态
-        foreach (Cell cell in _board.Matrix.SelectMany(row => row))
-        {
-            if (cell.LiveNeighbours < liveDownThreshold || cell.LiveNeighbours > liveUpThreshold)
-            {
-                cell.Status = false;
-            }
-            else
-            {
-                if (cell.Status)
-                {
-                    cell.Status = true;
-                }
-                else if (cell.LiveNeighbours >= bornDownThreshold && cell.LiveNeighbours <= bornUpThreshold)
-                {
-                    cell.Status = true;
-                }
-            }
 
-            // 计算完状态重置存活邻居数
-            cell.LiveNeighbours = 0;
-        }
-        
-        // 根据状态更新棋盘
-        for (var i = 0; i < _board.Columns; i++)
+        return liveNeighbors;
+    }
+
+    public void UpdateBoard()
+    {
+        for(int i = 1; i < Rows - 1; i++)
         {
-            for (var j = 0; j < _board.Rows; j++)
+            for (int j = 1; j < Columns - 1; j++)
             {
-                CurrentCell = _board.Matrix[i][j];
-                if (!CurrentCell.Status) continue;
-                if (CurrentCell.BoardCell == null)
-                {
-                    var boardPosition = new Vector3(i - _board.Columns / 2, j - _board.Rows / 2);
-                    GameObject cell = pool.GetCell();
-                    cell.transform.localPosition = boardPosition * (cellSize + cellInterval);
-                    cell.name = $"BoardCell{boardPosition.x}, {boardPosition.y}";
-                    CurrentCell.BoardCell = cell;
-                }
-                _board.ExtendTo(i - _board.Columns/2, j - _board.Rows/2);
+                int liveNeighbors = CountNeighborhood(i, j);
+                if (liveNeighbors < _surviveDownThreshold || liveNeighbors > _surviveUpThreshold)
+                    _nextBoard[i, j] = false;
+                else if (Status[i, j])
+                    _nextBoard[i, j] = true;
+                else if (liveNeighbors >= _bornDownThreshold && liveNeighbors <= _bornUpThreshold)
+                    _nextBoard[i, j] = true;
+                else _nextBoard[i, j] = false;
             }
         }
-        
-    }
-    
-    public void UpdateOnce()
-    {
-        _canUpdate = true;
-        _isContinuousUpdate = false;
-        _updateStatusText.text = "Finished";
+
+        (Status, _nextBoard) = (_nextBoard, Status);
     }
 
-    public void StartUpdate()
+    public void ExtendTo(int x, int y)
     {
-        _isContinuousUpdate = true;
-        _canUpdate = true;
-        _updateStatusText.text = "On";
-        canPutCell = false;
-    }
+        y = Math.Abs(y);
+        x = Math.Abs(x);
+        if (Rows > 4 * y + 1 && Columns > 4 * x + 1) return;
+        int newRows = 2 * Rows + 1;
+        int newColumns = 2 * Columns + 1;
+        if(4 * y + 1 > newRows) newRows = 4 * y + 1;
+        if(4 * x + 1 > newColumns) newColumns = 4 * x + 1;
+        bool[,] newBoard = new bool[newRows, newColumns];
+        for(int i = 0; i < Rows; i++)
+        {
+            for (int j = 0; j < Columns; j++)
+            {
+                if(Status[i, j])
+                    newBoard[(newRows - Rows) / 2 + i, (newColumns - Columns) / 2 + j] = true;
+            }
+        }
 
-    public void StopUpdate()
-    {
-        _canUpdate = false;
-        _isContinuousUpdate = false;
-        _updateStatusText.text = "Off";
-        canPutCell = true;
+        Rows = newRows;
+        Columns = newColumns;
+        Status = newBoard;
+        _nextBoard = new bool[Rows, Columns];
     }
 
     public void Clear()
     {
-        StartCoroutine($"ClearBoard");
-    }
-
-    IEnumerator ClearBoard()
-    {
-        StopUpdate();
-        yield return null;
-        foreach (Cell cell in _board.Matrix.SelectMany(row => row))
-        {
-            cell.Status = false;
-            cell.LiveNeighbours = 0;
-        }
-    }
-
-    void Awake()
-    {
-        if (Instance != this)
-        {
-            DestroyImmediate(this);
-            return;
-        }
-
-        _board = new ExtendableMatrix<Cell>();
-        _camera = Camera.main;
-        _updateStatusText = updateStatusText.GetComponent<Text>();
-    }
-
-    void Start()
-    {
-        boardCell.transform.localScale = new Vector3(cellSize, cellSize, 1);
-        _nextUpdateTime = updateInterval;
-
-        _boardHolderMovement = boardHolder.GetComponent<BoardHolderMovement>();
-
-        // init chessboard
-        if (boardHolder == null)
-            boardHolder = GameObject.Find("BoardPool");
-        if (boardHolder == null)
-        {
-            boardHolder = new GameObject("BoardPool");
-            boardHolder.AddComponent<BoardHolderMovement>();
-            boardHolder.AddComponent<BoardCellPool>();
-        }
-
-        pool = boardHolder.GetComponent<BoardCellPool>();
-        pool.boardCell = boardCell;
-    }
-
-    void Update()
-    {
-        if (_canUpdate && !_isContinuousUpdate)
-        {
-            BoardUpdate();
-            _canUpdate = false;
-        }
-
-        if (_canUpdate && _isContinuousUpdate)
-        {
-            if (_nextUpdateTime < 0)
-            {
-                BoardUpdate();
-                _nextUpdateTime = updateInterval;
-            }
-            else
-            {
-                _nextUpdateTime -= Time.deltaTime;
-            }
-        }
-
-        if (Input.GetKeyUp(KeyCode.Space))
-        {
-            UpdateOnce();
-        }
-        
-        if (Input.GetMouseButtonUp(0) && canPutCell && !_boardHolderMovement.isBoardMoving)
-        {
-            // 鼠标不在UI上
-            if (EventSystem.current.IsPointerOverGameObject()) return;
-            
-            // 根据鼠标位置计算棋盘位置和矩阵位置
-            Vector3 mousePosition = _camera.ScreenToWorldPoint(Input.mousePosition);
-            Vector3 localMousePosition =
-                boardHolder.transform.InverseTransformPoint(mousePosition) / (cellSize + cellInterval);
-            var boardX = Convert.ToInt32(localMousePosition.x);
-            var boardY = Convert.ToInt32(localMousePosition.y);
-            
-            // 调整矩阵状态
-            _board.ExtendTo(boardX, boardY);
-            CurrentCell = _board.Matrix[boardX + _board.Columns/2][boardY + _board.Rows/2];
-            CurrentCell.Status = true;
-            
-            // 实例化棋盘单元
-            GameObject cell = pool.GetCell();
-            cell.transform.localPosition = new Vector3(boardX, boardY, 0) * (cellSize + cellInterval);
-            cell.name = $"BoardCell{boardX}, {boardY}";
-            CurrentCell.BoardCell = cell;
-        }
+        Status = new bool[Rows, Columns];
     }
 }

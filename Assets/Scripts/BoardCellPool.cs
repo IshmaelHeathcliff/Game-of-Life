@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class BoardCellPool : MonoBehaviour
 {
-    [SerializeField] int poolSizeStep = 10;
+    [SerializeField] int poolSizeStep = 20;
 
     public GameObject boardCell;
     readonly List<GameObject> _cellPool = new List<GameObject>();
@@ -19,7 +19,7 @@ public class BoardCellPool : MonoBehaviour
 
     void IncreasePoolSize()
     {
-        for (var i = 0; i < poolSizeStep; i++)
+        for (int i = 0; i < poolSizeStep; i++)
         {
             GameObject obj = Instantiate(boardCell, transform);
             obj.SetActive(false);
@@ -29,12 +29,18 @@ public class BoardCellPool : MonoBehaviour
     
     public GameObject GetCell()
     {
-        for(int i=_currentCell+1; i != _currentCell; i++)
+        int i = _currentCell + 1 >= _cellPool.Count ? 0: _currentCell + 1; 
+        while(i != _currentCell)
         {
-            if (i >= _cellPool.Count-1) i = 0;
-            if (_cellPool[i].activeSelf) continue;
+            if (_cellPool[i].activeSelf)
+            {
+                i++;
+                if (i >= _cellPool.Count) i = 0;
+                continue;
+            }
             _cellPool[i].SetActive(true);
             _currentCell = i;
+            // Debug.Log($"currentCell:{_currentCell}");
             return _cellPool[i];
         }
 
@@ -43,5 +49,13 @@ public class BoardCellPool : MonoBehaviour
         _currentCell = _cellPool.Count - 1;
         IncreasePoolSize();
         return obj;
+    }
+
+    public void ClearCell()
+    {
+        foreach (GameObject cell in _cellPool)
+        {
+            cell.SetActive(false);
+        }
     }
 }

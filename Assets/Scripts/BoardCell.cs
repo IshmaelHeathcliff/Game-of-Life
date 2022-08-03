@@ -7,12 +7,6 @@ using UnityEngine.EventSystems;
 public class BoardCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     bool _canDestroy;
-    public Chessboard.Cell Cell;
-
-    void OnEnable()
-    {
-        Cell = Chessboard.Instance.CurrentCell;
-    }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
@@ -24,22 +18,24 @@ public class BoardCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
         _canDestroy = false;
     }
 
+    int[] BoardPosition()
+    {
+        int[] boardSize = ChessboardController.Instance.GetBoardSize();
+        Vector3 localPosition = transform.localPosition;
+        int i = Convert.ToInt32(localPosition.y) + boardSize[0] / 2;
+        int j = Convert.ToInt32(localPosition.x) + boardSize[1] / 2;
+        return new[] {i, j};
+    }
+
     void Update()
     {
-        if (!Chessboard.Instance.canPutCell) _canDestroy = false;
-        
-        if (!Cell.Status)
-        {
-            gameObject.SetActive(false);
-            Cell.BoardCell = null;
-            return;
-        }
-        
-        if (_canDestroy && Input.GetMouseButtonUp(0))
-        {
-            Cell.Status = false;
-            gameObject.SetActive(false);
-            Cell.BoardCell = null;
-        }
+        if (!ChessboardController.Instance.canPutCell) _canDestroy = false;
+
+        if (!_canDestroy || !Input.GetMouseButtonUp(0)) return;
+        int[] pos = BoardPosition();
+        int i = pos[0];
+        int j = pos[1];
+        ChessboardController.Instance.Board.Status[i, j] = false;
+        gameObject.SetActive(false);
     }
 }
