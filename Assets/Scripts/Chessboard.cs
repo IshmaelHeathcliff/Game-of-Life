@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Serialization;
@@ -24,6 +25,7 @@ public class Chessboard : MonoBehaviour
             {
                 GameObject obj = new GameObject("Chessboard");
                 _instance = obj.AddComponent<Chessboard>();
+                obj.AddComponent<BoardCellPool>();
             }
 
             return _instance;
@@ -31,32 +33,37 @@ public class Chessboard : MonoBehaviour
     }
     public class Cell
     {
-        public readonly BoardCell BoardCell;
+        readonly GameObject _cellObject;
+        readonly BoardCell _boardCell;
         public bool Status;
         public bool NextStatus;
 
-        public Cell(int i, int j, GameObject cellObject, Transform transform)
+        public Cell()
         {
-            GameObject o = Instantiate(cellObject, transform);
-            BoardCell = o.GetComponent<BoardCell>();
-            Vector3 pos = new(j - Instance.Columns / 2, Instance.Rows / 2 - i);
-            o.name = $"BoardCell{pos.x}, {pos.y}";
-            o.transform.localPosition = pos * (Instance.cellSize + Instance.cellInterval);
-
+            _cellObject = Instance.pool.GetCell();
+            _boardCell = _cellObject.GetComponent<BoardCell>();
+            
             Status = false;
-            BoardCell.Hide();
+            _boardCell.Hide();
+        }
+
+        public void SetPos(int i, int j)
+        {
+            Vector3 pos = new(j - Instance.Size / 2, Instance.Size / 2 - i);
+            _cellObject.name = $"BoardCell{pos.x}, {pos.y}";
+            _cellObject.transform.localPosition = pos * (Instance.cellSize + Instance.cellInterval);
         }
 
         public void Display()
         {
             Status = true;
-            BoardCell.Display();
+            _boardCell.Display();
         }
 
         public void Hide()
         {
             Status = false;
-            BoardCell.Hide();
+            _boardCell.Hide();
         }
     }
 
@@ -83,9 +90,9 @@ public class Chessboard : MonoBehaviour
     Camera _camera;
     CameraMove _cameraMove;
     Text _updateStatusText;
+    public BoardCellPool pool;
 
-    public int Rows { get; private set; } = 21;
-    public int Columns { get; private set; } = 21;
+    public int Size { get; private set; } = 21;
     public Cell[,] Board { get; private set; }
     
     
@@ -99,10 +106,10 @@ public class Chessboard : MonoBehaviour
                 if(i==0 && j==0) continue;
                 int nbX = x + i;
                 int nbY = y + j;
-                if (nbX < 0) nbX = Rows - 1;
-                if (nbX > Rows - 1) nbX = 0;
-                if (nbY < 0) nbY = Columns - 1;
-                if (nbY > Columns - 1) nbY = 0;
+                if (nbX < 0) nbX = Size - 1;
+                if (nbX > Size - 1) nbX = 0;
+                if (nbY < 0) nbY = Size - 1;
+                if (nbY > Size - 1) nbY = 0;
                 liveNeighbors += Board[nbX, nbY].Status ? 1 : 0;
             }
         }
@@ -116,9 +123,9 @@ public class Chessboard : MonoBehaviour
         // stopwatch.Start();
 
         // 计算存活邻居
-        for (int i = 0; i < Rows; i++)
+        for (int i = 0; i < Size; i++)
         {
-            for (int j = 0; j < Columns; j++)
+            for (int j = 0; j < Size; j++)
             {
                 int liveNeighbors = CountNeighborhood(i, j);
                 if (liveNeighbors < surviveDownThreshold || liveNeighbors > surviveUpThreshold)
@@ -133,9 +140,9 @@ public class Chessboard : MonoBehaviour
         }
 
         // 根据存活邻居更新状态
-        for (int i = 0; i < Rows; i++)
+        for (int i = 0; i < Size; i++)
         {
-            for (int j = 0; j < Columns; j++)
+            for (int j = 0; j < Size; j++)
             {
                 Cell cell = Board[i, j];
                 if (cell.NextStatus)
@@ -150,23 +157,15 @@ public class Chessboard : MonoBehaviour
         }
 
         // 根据倒数第三圈是否有存活Cell扩展Board
-        if (Rows < sizeLimit && Columns < sizeLimit) ;
+        if (Size < sizeLimit) ;
         {
-            for (int i = 2; i < Rows - 2; i++)
+            for (int i = 2; i < Size - 2; i++)
             {
-                if (Board[i, 2].Status || Board[i, Columns - 3].Status)
+                if (Board[i, 2].Status || Board[i, Size - 3].Status || Board[2, i].Status || Board[Size - 3, i].Status)
                 {
-                    ExtendTo(Columns / 2, Rows / 2);
+                    ExtendTo(Size / 2, Size / 2);
                 }
             }
-            
-            for (int j = 2; j < Columns - 2; j++)
-        {
-            if (Board[2, j].Status || Board[Rows - 3, j].Status)
-            {
-                ExtendTo(Columns / 2, Rows / 2);
-            }
-        }
         }
 
         // stopwatch.Stop();
@@ -178,29 +177,29 @@ public class Chessboard : MonoBehaviour
     {
         y = Math.Abs(y);
         x = Math.Abs(x);
-        if (Rows > 2 * y + 1 && Columns > 2 * x + 1) return;
-        if (Rows >= sizeLimit || Columns >= sizeLimit) return;
-        int preRows = Rows;
-        int preColumns = Columns;
-        Rows = 2 * Rows + 1;
-        Columns = 2 * Columns + 1;
-        if(4 * y + 1 > Rows) Rows = 4 * y + 1;
-        if(4 * x + 1 > Columns) Columns = 4 * x + 1;
-        var newBoard = new Cell[Rows, Columns];
-        for (int i = 0; i < Rows; i++)
+        if (Size > 2 * y + 1 && Size > 2 * x + 1) return;
+        if (Size >= sizeLimit) return;
+        int preSize = Size;
+        Size = 2 * Size + 1;
+        if (4 * y + 1 > Size || 4 * x + 1 > Size)
         {
-            for (int j = 0; j < Columns; j++)
+            Size = x > y? 4 * x + 1 : 4 * y + 1;
+        }
+        var newBoard = new Cell[Size, Size];
+        for (int i = 0; i < Size; i++)
+        {
+            for (int j = 0; j < Size; j++)
             {
-                int offsetI = (Rows - preRows) / 2;
-                int offsetJ = (Columns - preColumns) / 2;
-                if (i >= offsetI && i <= offsetI + preRows - 1 &&
-                    j >= offsetJ && j <= offsetJ + preColumns - 1)
+                int offset = (Size - preSize) / 2;
+                if (i >= offset && i <= offset + preSize - 1 &&
+                    j >= offset && j <= offset + preSize - 1)
                 {
-                    newBoard[i, j] = Board[i - offsetI, j - offsetJ];
+                    newBoard[i, j] = Board[i - offset, j - offset];
                 }
                 else
                 {
-                    newBoard[i, j] = new Cell(i, j, cellObject, transform);
+                    newBoard[i, j] = new Cell();
+                    newBoard[i, j].SetPos(i, j);
                 }
             }
         }
@@ -209,14 +208,14 @@ public class Chessboard : MonoBehaviour
 
     public void Clear()
     {
-        for (int i = 0; i < Rows; i++)
+        for (int i = 0; i < Size; i++)
         {
-            for (int j = 0; j < Columns; j++)
+            for (int j = 0; j < Size; j++)
             {
-                Board[i, j].Status = false;
-                Board[i, j].BoardCell.Hide();
+                Board[i, j].Hide();
             }
         }
+        StopUpdate();
     }
     
     public void UpdateOnce()
@@ -261,7 +260,7 @@ public class Chessboard : MonoBehaviour
 
         // 调整矩阵状态
         ExtendTo(posX, posY);
-        Cell currentCell = Board[- posY + Rows/2, posX + Columns/2];
+        Cell currentCell = Board[- posY + Size/2, posX + Size/2];
         if (currentCell.Status)
         {
             currentCell.Hide();
@@ -280,8 +279,13 @@ public class Chessboard : MonoBehaviour
             return;
         }
 
+        Application.targetFrameRate = 60;
+
         _camera = Camera.main;
         _updateStatusText = updateStatusText.GetComponent<Text>();
+        pool = GetComponent<BoardCellPool>();
+        pool.cellObject = cellObject;
+        pool.sizeLimit = sizeLimit;
     }
 
     void Start()
@@ -289,18 +293,21 @@ public class Chessboard : MonoBehaviour
         cellObject.transform.localScale = new Vector3(cellSize, cellSize, 1);
         _nextUpdateTime = updateInterval;
         _cameraMove = _camera.GetComponent<CameraMove>();
-        Board = new Cell[Rows, Columns];
-        for (int i = 0; i < Rows; i++)
+        Board = new Cell[Size, Size];
+        for (int i = 0; i < Size; i++)
         {
-            for (int j = 0; j < Columns; j++)
+            for (int j = 0; j < Size; j++)
             {
-                Board[i, j] = new Cell(i, j, cellObject, transform);
+                Board[i, j] = new Cell();
+                Board[i, j].SetPos(i, j);
             }
         }
     }
 
     void Update()
     {
+        // System.Diagnostics.Stopwatch stopwatch = new();
+        // stopwatch.Start();
         if (_canUpdate && !_isContinuousUpdate)
         {
             UpdateBoard();
@@ -326,5 +333,11 @@ public class Chessboard : MonoBehaviour
         }
         
         MouseInput();
+
+        // Debug.Log(transform.childCount);
+        // stopwatch.Stop();
+        // double updateTime = stopwatch.Elapsed.TotalMilliseconds;
+        // if(updateTime > 1)
+        //     Debug.Log($"update time: {updateTime}");
     }
 }

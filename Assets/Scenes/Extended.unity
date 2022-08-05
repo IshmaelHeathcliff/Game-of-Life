@@ -1467,6 +1467,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2138117157}
   - component: {fileID: 2138117158}
+  - component: {fileID: 2138117159}
   m_Layer: 0
   m_Name: Chessboard
   m_TagString: Untagged
@@ -1508,7 +1509,23 @@ MonoBehaviour:
   bornUpThreshold: 3
   cellInterval: 0.1
   cellSize: 1
-  updateInterval: 0.1
+  updateInterval: 0.5
   updateStatusText: {fileID: 962908606}
   sizeLimit: 150
   canPutCell: 1
+  pool: {fileID: 0}
+--- !u!114 &2138117159
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2138117155}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6153b61ba5b33c14394141a331e59248, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  poolSizeStep: 20
+  cellObject: {fileID: 0}
+  sizeLimit: 20
