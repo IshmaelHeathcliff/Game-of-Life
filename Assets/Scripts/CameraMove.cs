@@ -30,10 +30,10 @@ public class CameraMove : MonoBehaviour
         float scroll = Input.GetAxis("Mouse ScrollWheel");
         switch (scroll)
         {
-            case > 0:
+            case < 0:
                 _targetSize *= zoomSpeed;
                 break;
-            case < 0:
+            case > 0:
                 _targetSize /= zoomSpeed;
                 break;
         }

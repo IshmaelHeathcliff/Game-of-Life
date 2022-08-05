@@ -4,38 +4,65 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class BoardCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+public class BoardCell : MonoBehaviour //, IPointerEnterHandler, IPointerExitHandler
 {
-    bool _canDestroy;
+    bool _canChange;
+    SpriteRenderer _renderer;
 
-    public void OnPointerEnter(PointerEventData eventData)
+    // public void OnPointerEnter(PointerEventData eventData)
+    // {
+    //     _canChange = true;
+    // }
+    //
+    // public void OnPointerExit(PointerEventData eventData)
+    // {
+    //     _canChange = false;
+    // }
+
+    public void Hide()
     {
-        _canDestroy = true;
+        Color c = _renderer.color;
+        _renderer.color = new Color(c.r, c.g, c.b, 0.2f);
     }
 
-    public void OnPointerExit(PointerEventData eventData)
+    public void Display()
     {
-        _canDestroy = false;
+        Color c = _renderer.color;
+        _renderer.color = new Color(c.r, c.g, c.b, 1);
     }
 
-    int[] BoardPosition()
+    // public int[] BoardPosition()
+    // {
+    //     int boardRows = Chessboard.Instance.Rows;
+    //     int boardColumns = Chessboard.Instance.Columns;
+    //     Vector3 localPosition = transform.localPosition;
+    //     int i = -Convert.ToInt32(localPosition.y) + boardRows / 2;
+    //     int j = Convert.ToInt32(localPosition.x) + boardColumns / 2;
+    //     return new[] {i, j};
+    // }
+
+    void Awake()
     {
-        int[] boardSize = ChessboardController.Instance.GetBoardSize();
-        Vector3 localPosition = transform.localPosition;
-        int i = Convert.ToInt32(localPosition.y) + boardSize[0] / 2;
-        int j = Convert.ToInt32(localPosition.x) + boardSize[1] / 2;
-        return new[] {i, j};
+        _renderer = GetComponent<SpriteRenderer>();
     }
 
     void Update()
     {
-        if (!ChessboardController.Instance.canPutCell) _canDestroy = false;
-
-        if (!_canDestroy || !Input.GetMouseButtonUp(0)) return;
-        int[] pos = BoardPosition();
-        int i = pos[0];
-        int j = pos[1];
-        ChessboardController.Instance.Board.Status[i, j] = false;
-        gameObject.SetActive(false);
+        // if (!Chessboard.Instance.canPutCell) _canChange = false;
+        //
+        // if (!_canChange || !Input.GetMouseButtonUp(0)) return;
+        //
+        // int[] boardPosition = BoardPosition();
+        // int i = boardPosition[0];
+        // int j = boardPosition[1];
+        // Chessboard.Cell currentCell = Chessboard.Instance.Board[i, j];
+        // if (currentCell.Status)
+        // {
+        //     currentCell.Hide();
+        // }
+        // else
+        // {
+        //     currentCell.Display();
+        // }
     }
 }

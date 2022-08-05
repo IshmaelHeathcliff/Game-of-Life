@@ -293,17 +293,17 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 438082539}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0.0006945221, w: 0.99999976}
   m_LocalPosition: {x: 0, y: 0, z: -1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 639607405}
   m_RootOrder: 6
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -0.08}
   m_AnchorMin: {x: 0.06, y: 0.6}
   m_AnchorMax: {x: 0.12, y: 0.7}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: -0.000030517578}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &438082541
@@ -350,8 +350,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1679776446}
-        m_TargetAssemblyTypeName: ChessboardController, Assembly-CSharp
+      - m_Target: {fileID: 2138117158}
+        m_TargetAssemblyTypeName: Chessboard, Assembly-CSharp
         m_MethodName: UpdateOnce
         m_Mode: 1
         m_Arguments:
@@ -434,8 +434,8 @@ RectTransform:
   m_Father: {fileID: 639607405}
   m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.03, y: 0.4326523}
-  m_AnchorMax: {x: 0.1614511, y: 0.531}
+  m_AnchorMin: {x: 0.06, y: 0.3386111}
+  m_AnchorMax: {x: 0.12, y: 0.52058333}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -483,8 +483,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1679776446}
-        m_TargetAssemblyTypeName: ChessboardController, Assembly-CSharp
+      - m_Target: {fileID: 2138117158}
+        m_TargetAssemblyTypeName: Chessboard, Assembly-CSharp
         m_MethodName: StartUpdate
         m_Mode: 1
         m_Arguments:
@@ -660,7 +660,7 @@ RectTransform:
   - {fileID: 847157303}
   - {fileID: 1426759408}
   m_Father: {fileID: 0}
-  m_RootOrder: 3
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
@@ -825,8 +825,8 @@ RectTransform:
   m_Father: {fileID: 639607405}
   m_RootOrder: 8
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.03, y: 0.4326523}
-  m_AnchorMax: {x: 0.1614511, y: 0.531}
+  m_AnchorMin: {x: 0.06, y: 0.3386111}
+  m_AnchorMax: {x: 0.12, y: 0.52058333}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -874,8 +874,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1679776446}
-        m_TargetAssemblyTypeName: ChessboardController, Assembly-CSharp
+      - m_Target: {fileID: 2138117158}
+        m_TargetAssemblyTypeName: Chessboard, Assembly-CSharp
         m_MethodName: StopUpdate
         m_Mode: 1
         m_Arguments:
@@ -960,7 +960,7 @@ GameObject:
   - component: {fileID: 962908609}
   - component: {fileID: 962908608}
   m_Layer: 5
-  m_Name: UpdateStatus2
+  m_Name: UpdateStatus
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1040,7 +1040,7 @@ GameObject:
   - component: {fileID: 981750859}
   - component: {fileID: 981750858}
   m_Layer: 5
-  m_Name: UpdateStatus1
+  m_Name: UpdateStatusTitle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1226,8 +1226,8 @@ RectTransform:
   m_Father: {fileID: 639607405}
   m_RootOrder: 9
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.06, y: 0.23925534}
-  m_AnchorMax: {x: 0.12, y: 0.35283688}
+  m_AnchorMin: {x: 0.06, y: 0.10138887}
+  m_AnchorMax: {x: 0.12, y: 0.21472222}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -1275,8 +1275,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1679776446}
-        m_TargetAssemblyTypeName: ChessboardController, Assembly-CSharp
+      - m_Target: {fileID: 2138117158}
+        m_TargetAssemblyTypeName: Chessboard, Assembly-CSharp
         m_MethodName: Clear
         m_Mode: 1
         m_Arguments:
@@ -1298,6 +1298,18 @@ MonoBehaviour:
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 611707076}
+        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
+        m_MethodName: SetActive
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
         m_CallState: 2
 --- !u!114 &1426759410
 MonoBehaviour:
@@ -1445,61 +1457,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!1 &1679776445
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1679776447}
-  - component: {fileID: 1679776446}
-  m_Layer: 0
-  m_Name: ChessboardController
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1679776446
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1679776445}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6cced0455e3fb8443aedf44b2f925538, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  surviveDownThreshold: 2
-  surviveUpThreshold: 3
-  bornDownThreshold: 2
-  bornUpThreshold: 2
-  cellInterval: 0
-  cellSize: 0.5
-  updateInterval: 0.1
-  boardCell: {fileID: 4013230465801230699, guid: d61c5756f9e20b44db7d1fac3fdbfac7, type: 3}
-  boardHolder: {fileID: 2138117155}
-  updateStatusText: {fileID: 962908606}
-  canPutCell: 1
---- !u!4 &1679776447
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1679776445}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_RootOrder: 2
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2138117155
 GameObject:
   m_ObjectHideFlags: 0
@@ -1511,7 +1468,7 @@ GameObject:
   - component: {fileID: 2138117157}
   - component: {fileID: 2138117158}
   m_Layer: 0
-  m_Name: BoardPool
+  m_Name: Chessboard
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1530,7 +1487,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 4
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2138117158
 MonoBehaviour:
@@ -1541,8 +1498,17 @@ MonoBehaviour:
   m_GameObject: {fileID: 2138117155}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9d0b06d2a0c3d9d44b4a13daedc6782b, type: 3}
+  m_Script: {fileID: 11500000, guid: d508877318db4ed8a98ca965fd48c223, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  poolSizeStep: 20
-  boardCell: {fileID: 4013230465801230699, guid: d61c5756f9e20b44db7d1fac3fdbfac7, type: 3}
+  cellObject: {fileID: 4013230465801230699, guid: d61c5756f9e20b44db7d1fac3fdbfac7, type: 3}
+  surviveDownThreshold: 2
+  surviveUpThreshold: 3
+  bornDownThreshold: 3
+  bornUpThreshold: 3
+  cellInterval: 0.1
+  cellSize: 1
+  updateInterval: 0.1
+  updateStatusText: {fileID: 962908606}
+  sizeLimit: 150
+  canPutCell: 1
