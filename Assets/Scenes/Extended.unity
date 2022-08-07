@@ -1457,6 +1457,54 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &1930331892
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1930331894}
+  - component: {fileID: 1930331893}
+  m_Layer: 0
+  m_Name: CellPool
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1930331893
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1930331892}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6153b61ba5b33c14394141a331e59248, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  poolSizeStep: 50
+  cellInterval: 0.1
+  cellSize: 0.5
+  cellObject: {fileID: 4013230465801230699, guid: d61c5756f9e20b44db7d1fac3fdbfac7, type: 3}
+--- !u!4 &1930331894
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1930331892}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -25.97336, y: -27.252626, z: -0.027606145}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 4
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2138117155
 GameObject:
   m_ObjectHideFlags: 0
@@ -1467,7 +1515,6 @@ GameObject:
   m_Component:
   - component: {fileID: 2138117157}
   - component: {fileID: 2138117158}
-  - component: {fileID: 2138117159}
   m_Layer: 0
   m_Name: Chessboard
   m_TagString: Untagged
@@ -1502,30 +1549,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d508877318db4ed8a98ca965fd48c223, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cellObject: {fileID: 4013230465801230699, guid: d61c5756f9e20b44db7d1fac3fdbfac7, type: 3}
   surviveDownThreshold: 2
   surviveUpThreshold: 3
   bornDownThreshold: 3
   bornUpThreshold: 3
-  cellInterval: 0.1
-  cellSize: 1
-  updateInterval: 0.5
+  updateInterval: 0.1
   updateStatusText: {fileID: 962908606}
   sizeLimit: 150
+  coroutineTimes: 2
   canPutCell: 1
-  pool: {fileID: 0}
---- !u!114 &2138117159
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2138117155}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6153b61ba5b33c14394141a331e59248, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  poolSizeStep: 20
-  cellObject: {fileID: 0}
-  sizeLimit: 20

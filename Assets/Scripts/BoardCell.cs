@@ -19,16 +19,22 @@ public class BoardCell : MonoBehaviour //, IPointerEnterHandler, IPointerExitHan
     //     _canChange = false;
     // }
 
-    public void Hide()
+    public void Disable()
     {
-        Color c = _renderer.color;
+        var c = _renderer.color;
         _renderer.color = new Color(c.r, c.g, c.b, 0.2f);
     }
 
-    public void Display()
+    public void Enable()
     {
-        Color c = _renderer.color;
+        var c = _renderer.color;
         _renderer.color = new Color(c.r, c.g, c.b, 1);
+    }
+
+    public void Hide()
+    {
+        var c = _renderer.color;
+        _renderer.color = new Color(c.r, c.g, c.b, 0);
     }
 
     // public int[] BoardPosition()

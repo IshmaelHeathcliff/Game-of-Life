@@ -25,9 +25,9 @@ public class CameraMove : MonoBehaviour
     
     void Zoom()
     {
-        float size = _camera.orthographicSize;
-        Vector3 scale = _transform.localScale;
-        float scroll = Input.GetAxis("Mouse ScrollWheel");
+        var size = _camera.orthographicSize;
+        var scale = _transform.localScale;
+        var scroll = Input.GetAxis("Mouse ScrollWheel");
         switch (scroll)
         {
             case < 0:
@@ -38,7 +38,7 @@ public class CameraMove : MonoBehaviour
                 break;
         }
 
-        Vector3 targetScale = new Vector3(_targetSize, _targetSize, 1);
+        var targetScale = new Vector3(_targetSize, _targetSize, 1);
 
 
 
@@ -59,7 +59,7 @@ public class CameraMove : MonoBehaviour
 
     void Move()
     {
-        Vector3 position = _transform.position;
+        var position = _transform.position;
         _targetPosition = position;
         
         if (Input.GetMouseButtonDown(1))
@@ -69,7 +69,7 @@ public class CameraMove : MonoBehaviour
         }
         if (Input.GetMouseButton(1))
         {
-            Vector3 currentMousePosition = _camera.ScreenToWorldPoint(Input.mousePosition);
+            var currentMousePosition = _camera.ScreenToWorldPoint(Input.mousePosition);
             _targetPosition = _startBoardPosition - (currentMousePosition - _startMousePosition);
         }
 

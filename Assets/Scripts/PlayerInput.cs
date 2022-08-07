@@ -30,7 +30,7 @@ public class PlayerInput : InputComponent
 
     protected override void GetInputs(bool fixedUpdateHappened)
     {
-        foreach (InputButton button in Buttons) 
+        foreach (var button in Buttons) 
             button.Get(fixedUpdateHappened);
     }
 
@@ -38,7 +38,7 @@ public class PlayerInput : InputComponent
     {
         HaveControl = true;
 
-        foreach (InputButton button in Buttons) 
+        foreach (var button in Buttons) 
             GainControl(button);
     }
 
@@ -46,7 +46,7 @@ public class PlayerInput : InputComponent
     {
         HaveControl = false;
 
-        foreach (InputButton button in Buttons)
+        foreach (var button in Buttons)
             ReleaseControl(button, resetValue);
     }
 }
