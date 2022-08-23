@@ -2,7 +2,9 @@ using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
+using Random = System.Random;
 
 public class Chessboard : MonoBehaviour
 {
@@ -35,10 +37,12 @@ public class Chessboard : MonoBehaviour
     [SerializeField][Range(0, 8)] int surviveUpThreshold = 3;
     [SerializeField][Range(0, 8)] int bornDownThreshold = 3;
     [SerializeField][Range(0, 8)] int bornUpThreshold = 3;
+    [SerializeField] int randomDensity = 3;
     
     [Header("Board Settings")]
     [SerializeField] float updateInterval = 1f;
     [SerializeField] GameObject updateStatusText;
+    public int size  = 21;
     public int sizeLimit = 150;
 
     [Header("Optimization")]
@@ -47,16 +51,18 @@ public class Chessboard : MonoBehaviour
     [HideInInspector]public bool canPutCell = true;
 
     bool _canUpdate;
+    public bool isExtendable;
     bool _isContinuousUpdate;
+    bool _isClear;
     float _nextUpdateTime;
     Camera _camera;
     CameraMove _cameraMove;
     Text _updateStatusText;
     CellPool _pool;
 
-    public int Size { get; private set; } = 21;
     CellPool.Cell[,] Board { get; set; }
-    
+
+
     
     void CountNeighborhood(int x, int y)
     {
@@ -68,10 +74,10 @@ public class Chessboard : MonoBehaviour
                 if(i==0 && j==0) continue;
                 var nbX = x + i;
                 var nbY = y + j;
-                if (nbX < 0) nbX = Size - 1;
-                if (nbX > Size - 1) nbX = 0;
-                if (nbY < 0) nbY = Size - 1;
-                if (nbY > Size - 1) nbY = 0;
+                if (nbX < 0) nbX = size - 1;
+                if (nbX > size - 1) nbX = 0;
+                if (nbY < 0) nbY = size - 1;
+                if (nbY > size - 1) nbY = 0;
                 liveNeighbors += Board[nbX, nbY].Status ? 1 : 0;
             }
         }
@@ -91,14 +97,7 @@ public class Chessboard : MonoBehaviour
     void UpdateStatus(int x, int y)
     {
         var cell = Board[x, y];
-        if (cell.NextStatus)
-        {
-            cell.Enable();
-        }
-        else
-        {
-            cell.Disable();
-        }
+        cell.UpdateStatus();
     }
     IEnumerator UpdateBoard()
     {
@@ -108,9 +107,9 @@ public class Chessboard : MonoBehaviour
         for(var c=0; c < coroutineTimes; c++)
         {
             // stopwatch.Restart();
-            for (var i = c; i < Size; i+=coroutineTimes)
+            for (var i = c; i < size; i+=coroutineTimes)
             {
-                for (var j = 0; j < Size; j++)
+                for (var j = 0; j < size; j++)
                 {
                     // int x = i;
                     // int y = j;
@@ -132,9 +131,9 @@ public class Chessboard : MonoBehaviour
         for(var c=0; c < coroutineTimes; c++)
         {
             // stopwatch.Restart();
-            for (var i = c; i < Size; i+=coroutineTimes)
+            for (var i = c; i < size; i+=coroutineTimes)
             {
-                for (var j = 0; j < Size; j++)
+                for (var j = 0; j < size; j++)
                 {
                     // int x = i;
                     // int y = j;
@@ -156,13 +155,14 @@ public class Chessboard : MonoBehaviour
 
         // stopwatch.Restart();
         // 根据倒数第三圈是否有存活Cell扩展Board
-        if (Size < sizeLimit) ;
+        if (!isExtendable) yield break;
+        if (size < sizeLimit) ;
         {
-            for (var i = 2; i < Size - 2; i++)
+            for (var i = 2; i < size - 2; i++)
             {
-                if (!Board[i, 2].Status && !Board[i, Size - 3].Status && !Board[2, i].Status &&
-                    !Board[Size - 3, i].Status) continue;
-                ExtendTo(Size / 2, Size / 2);
+                if (!Board[i, 2].Status && !Board[i, size - 3].Status && !Board[2, i].Status &&
+                    !Board[size - 3, i].Status) continue;
+                ExtendTo(size / 2, size / 2);
                 yield break;
             }
         }
@@ -172,27 +172,64 @@ public class Chessboard : MonoBehaviour
         // Debug.Log($"extend time: {extendTime}");
     }
 
+    void MouseInput()
+    {
+        if (!Input.GetMouseButtonUp(0) || !canPutCell || _cameraMove.isMoving) return;
+        
+        // 鼠标不在UI上
+        if (EventSystem.current.IsPointerOverGameObject()) return;
+        
+        // Debug.Log("MouseDown");
+            
+        // 根据鼠标位置计算棋盘位置和矩阵位置
+        var mousePosition = _camera.ScreenToWorldPoint(Input.mousePosition);
+        var localMousePosition = transform.InverseTransformPoint(mousePosition) / (CellPool.Instance.cellSize + CellPool.Instance.cellInterval);
+        var posX = Convert.ToInt32(localMousePosition.x);
+        var posY = Convert.ToInt32(localMousePosition.y);
+        // Debug.Log(posX);
+        // Debug.Log(posY);
+
+        // 调整矩阵状态
+        if (isExtendable)
+        {
+            if (!ExtendTo(posX, posY)) return;
+            var currentCell = Board[-posY + size / 2, posX + size / 2];
+            currentCell.ChangeStatus();
+        }
+        else
+        {
+            var i = -posY + size / 2;
+            var j = posX + size / 2;
+            if (i < size && i >= 0 && j < size && j >= 0)
+            {
+                // Debug.Log($"i:{i}, j:{j}, Size:{size}");
+                var currentCell = Board[i, j];
+                currentCell.ChangeStatus();
+            }
+        }
+    }
+    
     bool ExtendTo(int x, int y)
     {
         y = Math.Abs(y);
         x = Math.Abs(x);
-        
+
         if (sizeLimit < 2 * y + 1 || sizeLimit < 2 * x + 1) return false;
-        if (Size > 4 * y + 1 && Size > 4 * x + 1) return true;
+        if (size > 4 * y + 1 && size > 4 * x + 1) return true;
         
-        var preSize = Size;
+        var preSize = size;
         
-        var newSize1 = Math.Min(2 * Size + 1, sizeLimit);
+        var newSize1 = Math.Min(2 * size + 1, sizeLimit);
         var newSize2 = Math.Max(Math.Min(sizeLimit, 4 * y + 1), Math.Min(sizeLimit, 4 * x + 1));
-        Size = Math.Max(newSize1, newSize2);
+        size = Math.Max(newSize1, newSize2);
 
 
-        var newBoard = new CellPool.Cell[Size, Size];
-        for (var i = 0; i < Size; i++)
+        var newBoard = new CellPool.Cell[size, size];
+        for (var i = 0; i < size; i++)
         {
-            for (var j = 0; j < Size; j++)
+            for (var j = 0; j < size; j++)
             {
-                var offset = (Size - preSize) / 2;
+                var offset = (size - preSize) / 2;
                 if (i >= offset && i <= offset + preSize - 1 &&
                     j >= offset && j <= offset + preSize - 1)
                 {
@@ -211,14 +248,7 @@ public class Chessboard : MonoBehaviour
 
     public void Clear()
     {
-        for (var i = 0; i < Size; i++)
-        {
-            for (var j = 0; j < Size; j++)
-            {
-                Board[i, j].Disable();
-            }
-        }
-        StopUpdate();
+        _isClear = true;
     }
     
     public void UpdateOnce()
@@ -243,34 +273,35 @@ public class Chessboard : MonoBehaviour
         _updateStatusText.text = "Off";
         canPutCell = true;
     }
-
-    void MouseInput()
+    
+    public void InitialiseBoard()
     {
-        if (!Input.GetMouseButtonUp(0) || !canPutCell || _cameraMove.isMoving) return;
-        
-        // 鼠标不在UI上
-        if (EventSystem.current.IsPointerOverGameObject()) return;
-        
-        // Debug.Log("MouseDown");
-            
-        // 根据鼠标位置计算棋盘位置和矩阵位置
-        var mousePosition = _camera.ScreenToWorldPoint(Input.mousePosition);
-        var localMousePosition = transform.InverseTransformPoint(mousePosition) / (CellPool.Instance.cellSize + CellPool.Instance.cellInterval);
-        var posX = Convert.ToInt32(localMousePosition.x);
-        var posY = Convert.ToInt32(localMousePosition.y);
-        // Debug.Log(posX);
-        // Debug.Log(posY);
-
-        // 调整矩阵状态
-        if (!ExtendTo(posX, posY)) return;
-        var currentCell = Board[-posY + Size / 2, posX + Size / 2];
-        if (currentCell.Status)
+        if (Board != null)
         {
-            currentCell.Disable();
+            foreach (var cell in Board)
+            {
+               _pool.AddCell(cell); 
+            }
         }
-        else
+        
+        Board = new CellPool.Cell[size, size];
+        for (var i = 0; i < size; i++)
         {
-            currentCell.Enable();
+            for (var j = 0; j < size; j++)
+            {
+                Board[i, j] = _pool.GetCell();
+                Board[i, j].SetPos(i, j, transform);
+            }
+        }
+    }
+
+    public void RandomiseBoard()
+    {
+        var rd = new Random();
+        foreach (var cell in Board)
+        {
+            cell.NextStatus = rd.Next(randomDensity) < 1;
+            cell.UpdateStatus();
         }
     }
 
@@ -295,15 +326,7 @@ public class Chessboard : MonoBehaviour
         
         _nextUpdateTime = updateInterval;
         _cameraMove = _camera.GetComponent<CameraMove>();
-        Board = new CellPool.Cell[Size, Size];
-        for (var i = 0; i < Size; i++)
-        {
-            for (var j = 0; j < Size; j++)
-            {
-                Board[i, j] = _pool.GetCell();
-                Board[i, j].SetPos(i, j, transform);
-            }
-        }
+        InitialiseBoard();
     }
 
     void Update()
@@ -342,5 +365,21 @@ public class Chessboard : MonoBehaviour
         // if(updateTime > 1)
         //     Debug.Log($"update time: {updateTime}");
     }
-    
+
+    void LateUpdate()
+    {
+        if (_isClear)
+        {
+            for (var i = 0; i < size; i++)
+            {
+                for (var j = 0; j < size; j++)
+                {
+                    Board[i, j].Disable();
+                }
+            }
+
+            StopUpdate();
+            _isClear = false;
+        }
+    }
 }

@@ -3,20 +3,21 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 
 public class BoardCell : MonoBehaviour //, IPointerEnterHandler, IPointerExitHandler
 {
-    bool _canChange;
+    // public bool CanChange { get; private set; }
     SpriteRenderer _renderer;
 
     // public void OnPointerEnter(PointerEventData eventData)
     // {
-    //     _canChange = true;
+    //     CanChange = true;
     // }
     //
     // public void OnPointerExit(PointerEventData eventData)
     // {
-    //     _canChange = false;
+    //     CanChange = false;
     // }
 
     public void Disable()
