@@ -53,8 +53,8 @@ public class BoardCell : MonoBehaviour //, IPointerEnterHandler, IPointerExitHan
         _renderer = GetComponent<SpriteRenderer>();
     }
 
-    void Update()
-    {
+    // void Update()
+    // {
         // if (!Chessboard.Instance.canPutCell) _canChange = false;
         //
         // if (!_canChange || !Input.GetMouseButtonUp(0)) return;
@@ -71,5 +71,5 @@ public class BoardCell : MonoBehaviour //, IPointerEnterHandler, IPointerExitHan
         // {
         //     currentCell.Display();
         // }
-    }
+    // }
 }

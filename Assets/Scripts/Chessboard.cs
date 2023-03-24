@@ -27,7 +27,6 @@ public class Chessboard : MonoBehaviour
                 var obj = new GameObject("Chessboard");
                 _instance = obj.AddComponent<Chessboard>();
             }
-
             return _instance;
         }
     }
