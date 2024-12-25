@@ -2,73 +2,39 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Cysharp.Threading.Tasks;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.Serialization;
 
 public class CellPool : MonoBehaviour
 {
-    static CellPool _instance;
-    public static CellPool Instance {
-        get
-        {
-            if (_instance != null)
-            {
-                return _instance;
-            }
-            
-            if (_instance == null)
-            {
-                _instance = FindAnyObjectByType<CellPool>();
-            }
-
-            if (_instance == null)
-            {
-                var obj = new GameObject("CellPool");
-                _instance = obj.AddComponent<CellPool>();
-            }
-
-            return _instance;
-        }
-    }
-
-    [SerializeField] int poolSizeStep = 500;
+    [SerializeField] int _poolSizeStep = 500;
+    [SerializeField] AssetReference _cellObject;
     
-    public float cellInterval = 0f;
-    public float cellSize = 1f;
-    public GameObject cellObject;
+    AsyncOperationHandle<GameObject> _cellObjectHandle;
 
-    Transform _transform;
-    
     readonly Stack<Cell> _cellPool = new();
     
 
     public class Cell
     {
-        readonly GameObject _cellObject;
-        readonly BoardCell _boardCell;
+        BoardCell _boardCell;
         public bool Status;
-        public bool NextStatus;
 
-        public Cell(GameObject cellObject, Transform transform)
+        public Cell(BoardCell boardCell, Transform transform)
         {
-            _cellObject = Instantiate(cellObject, transform);
-            _boardCell = _cellObject.GetComponent<BoardCell>();
-            
+            _boardCell = boardCell;
             _boardCell.Disable();
         }
 
-        // public bool CanChange => _boardCell.CanChange;
-        
-        public void InitialisePos(Transform transform)
+        public void SetPos(Vector2Int pos)
         {
-            _cellObject.transform.parent = transform;
-        }
-
-        public void SetPos(Vector2Int pos, Transform transform)
-        {
-            _cellObject.name = $"BoardCell{pos.x}, {pos.y}";
-            _cellObject.transform.parent = transform;
-            _cellObject.transform.localPosition = new Vector2(pos.x, pos.y) * (Instance.cellSize + Instance.cellInterval);
+            var cellObject = _boardCell.gameObject;
+            cellObject.name = $"BoardCell{pos.x}, {pos.y}";
+            cellObject.transform.localPosition = new Vector2(pos.x, pos.y);
         }
 
         public void Enable()
@@ -89,35 +55,40 @@ public class CellPool : MonoBehaviour
             _boardCell.Hide();
         }
 
-        public void UpdateStatus()
+        public void Destroy()
         {
-            if(NextStatus) Enable();
-            else Disable();
-        }
-
-        public void ChangeStatus()
-        {
-            if(Status) Disable();
-            else Enable();
-            
+            if (_boardCell != null)
+            {
+                _boardCell.Destroy();
+                _boardCell = null;
+            }
         }
     }
 
-    void IncreasePoolSize(int n)
+    async UniTask<Cell> CreateCell()
+    {
+        await _cellObjectHandle;
+        if (_cellObjectHandle.Result == null) return null;
+        var obj = Instantiate(_cellObjectHandle.Result, transform);
+        var cell = new Cell(obj.GetOrAddComponent<BoardCell>(), transform);
+        return cell;
+    }
+
+    async UniTask IncreasePoolSize(int n)
     {
         for (var i = 0; i < n; i++)
         {
-            var cell = new Cell(cellObject, _transform);
+            var cell = await CreateCell();
             _cellPool.Push(cell);
         }
     }
     
-    public Cell Pop()
+    public async UniTask<Cell> Pop()
     {
         if(_cellPool.Count <= 0)
         {
             // Debug.Log("pool insufficient");
-            IncreasePoolSize(poolSizeStep);
+            await IncreasePoolSize(_poolSizeStep);
         }
 
         var cell = _cellPool.Pop();
@@ -131,11 +102,36 @@ public class CellPool : MonoBehaviour
         cell.Disable();
     }
 
-    void Awake()
+    async void Awake()
     {
-        _transform = transform;
-        cellObject.transform.localScale = new Vector3(cellSize, cellSize, 1);
-        IncreasePoolSize(poolSizeStep);
+        _cellObjectHandle = Addressables.LoadAssetAsync<GameObject>(_cellObject);
+        await IncreasePoolSize(_poolSizeStep);
+    }
+
+    async void Start()
+    { 
+        await _cellObjectHandle;
+    }
+
+    public void Clear()
+    {
+        foreach (var cell in _cellPool)
+        {
+            cell.Destroy();
+        }
+        
+        _cellPool.Clear();
+    }
+
+
+    void OnDestroy()
+    {
+        if (_cellObjectHandle.IsValid())
+        {
+           Addressables.Release(_cellObjectHandle); 
+        }
+        
+        Clear();
     }
 
     void LateUpdate()

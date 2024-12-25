@@ -1,104 +1,147 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using QFramework;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.Serialization;
 
-public class CameraMove : MonoBehaviour
+public class CameraMove : MonoBehaviour, IController
 {
-    [SerializeField] float moveTime = 0.1f;
-    [SerializeField] float zoomSpeed = 1.1f;
-    [SerializeField] float zoomTime = 0.2f;
-    [SerializeField] float zoomUp = 200f;
-    [SerializeField] float zoomDown = 5f;
-    [SerializeField] Transform background;
+    [SerializeField] float _moveSpeed = 0.1f;
+    [SerializeField] float _zoomScale = 1.1f;
+    [SerializeField] float _zoomSpeed = 0.1f;
+    [SerializeField] float _zoomUp = 50f;
+    [SerializeField] float _zoomDown = 5f;
+    [SerializeField] Transform _background;
     
-    Vector3 _startMousePosition;
-    Vector3 _startBoardPosition;
-    Vector3 _targetPosition;
     Camera _camera;
     float _targetSize;
+
+    bool _isMoving;
+    bool _isZooming;
     
+    public bool IsMoving => _isMoving && _isZooming;
+
     
-    [HideInInspector] public bool isMoving;
+    void Zoom()
+    {
+        var size = _camera.orthographicSize;
+        // 背景格子缩放
+        if (Mathf.Abs(size - _targetSize) > 0.01f && Time.deltaTime < _zoomSpeed)
+        {
+            _camera.orthographicSize += (_targetSize - size) * Time.deltaTime / _zoomSpeed;
+            _isZooming = true;
+        }
+        else
+        {
+            _camera.orthographicSize = _targetSize;
+            _isZooming = false;
+        }
+       
+    }
+    
+    async void MoveAction(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+        {
+            var startMousePosition = _camera.ScreenToWorldPoint(Mouse.current.position.ReadValue());
+            var startPosition = transform.position;
+            _isMoving = true;
+            
+            while (_isMoving)
+            {
+                var currentMousePosition = _camera.ScreenToWorldPoint(Mouse.current.position.ReadValue());
+                var targetPosition = startPosition - (currentMousePosition - startMousePosition);
+
+                if (Vector3.Magnitude(targetPosition - transform.position) > 0.01f && Time.deltaTime < _moveSpeed)
+                {
+                    transform.position += (targetPosition - transform.position) * Time.deltaTime / _moveSpeed;
+                }
+                else
+                {
+                    transform.position = targetPosition;
+                }
+
+                await UniTask.WaitForEndOfFrame();
+            }
+        }
+
+        if (context.canceled)
+        {
+            _isMoving = false;
+        }
+    }
+
+    void ZoomAction(InputAction.CallbackContext context)
+    {
+        var scroll = context.ReadValue<Vector2>().y;
+        switch (scroll)
+        {
+            case < 0:
+                _targetSize *= _zoomScale;
+                break;
+            case > 0:
+                _targetSize /= _zoomScale;
+                break;
+        }
+        
+        if (_targetSize > _zoomUp)
+        {
+            _targetSize = _zoomUp;
+        }
+
+        if (_targetSize < _zoomDown)
+        {
+            _targetSize = _zoomDown;
+        }
+        
+        var targetScale = (int)_targetSize / 5;
+        _background.localScale = new Vector3(targetScale, targetScale, 1);       
+    }
+
+    void RegisterInput()
+    {
+        var cameraInput = this.GetSystem<InputSystem>().CameraActions;
+        cameraInput.Move.performed += MoveAction;
+        cameraInput.Move.canceled += MoveAction;
+        cameraInput.Zoom.performed += ZoomAction;
+    }
+
+    void UnregisterInput()
+    {
+        var cameraInput = this.GetSystem<InputSystem>().CameraActions;
+        cameraInput.Move.performed -= MoveAction;
+        cameraInput.Move.canceled -= MoveAction;
+        cameraInput.Zoom.performed -= ZoomAction;
+        
+    }
+    
     void Start()
     {
         _camera = Camera.main;
         if (_camera != null) _targetSize = _camera.orthographicSize;
     }
-    
-    void Zoom()
+
+    void OnEnable()
     {
-        var size = _camera.orthographicSize;
-        var scale = transform.localScale;
-        var scroll = Input.GetAxis("Mouse ScrollWheel");
-        switch (scroll)
-        {
-            case < 0:
-                _targetSize *= zoomSpeed;
-                break;
-            case > 0:
-                _targetSize /= zoomSpeed;
-                break;
-        }
-
-        if (_targetSize > zoomUp)
-        {
-            _targetSize = zoomUp;
-        }
-
-        if (_targetSize < zoomDown)
-        {
-            _targetSize = zoomDown;
-        }
-
-        var targetScale = (int)_targetSize / 5;
-        background.localScale = new Vector3(targetScale, targetScale, 1);
-
-        if (Mathf.Abs(size - _targetSize) > 0.01f && Time.deltaTime < moveTime)
-        {
-            _camera.orthographicSize += (_targetSize - size) * Time.deltaTime / zoomTime;
-            isMoving = true;
-        }
-        else
-        {
-            _camera.orthographicSize = _targetSize;
-            isMoving = false;
-        }
-       
-    }
-
-    void Move()
-    {
-        var position = transform.position;
-        _targetPosition = position;
-        
-        if (Input.GetMouseButtonDown(1))
-        {
-            _startMousePosition = _camera.ScreenToWorldPoint(Input.mousePosition);
-            _startBoardPosition = transform.position;
-        }
-        if (Input.GetMouseButton(1))
-        {
-            var currentMousePosition = _camera.ScreenToWorldPoint(Input.mousePosition);
-            _targetPosition = _startBoardPosition - (currentMousePosition - _startMousePosition);
-        }
-
-
-        if (Vector3.Magnitude(_targetPosition - position) > 0.01f && Time.deltaTime < moveTime)
-        {
-            isMoving = true;
-            transform.position += (_targetPosition - position) * Time.deltaTime / moveTime;
-        }
-        else
-        {
-            transform.position = _targetPosition;
-            isMoving = false;
-        }
+        this.GetSystem<InputSystem>().CameraActions.Enable();
+        RegisterInput();
     }
 
     void Update()
     {
-        Move();
         Zoom();
+    }
+
+    void OnDisable()
+    {
+        this.GetSystem<InputSystem>().CameraActions.Disable();
+        UnregisterInput();
+    }
+
+    public IArchitecture GetArchitecture()
+    {
+        return GameOfLife.Interface;
     }
 }

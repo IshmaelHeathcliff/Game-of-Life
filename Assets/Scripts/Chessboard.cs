@@ -1,70 +1,38 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
+using QFramework;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
+using Sirenix.OdinInspector;
+using TMPro;
+using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 using Random = System.Random;
 
-public class Chessboard : MonoBehaviour
+[RequireComponent(typeof(CellPool))]
+public class Chessboard : MonoBehaviour, IController
 {
-    static Chessboard _instance;
+    [Header("Game Rules")] 
+    [SerializeField] [Range(0, 8)] int _surviveDownThreshold = 2;
 
-    public static Chessboard Instance
-    {
-        get
-        {
-            if (_instance != null)
-            {
-                return _instance;
-            }
+    [SerializeField] [Range(0, 8)] int _surviveUpThreshold = 3;
+    [SerializeField] [Range(0, 8)] int _bornDownThreshold = 3;
+    [SerializeField] [Range(0, 8)] int _bornUpThreshold = 3;
+    [SerializeField] int _randomDensity = 3;
 
-            if (_instance == null)
-            {
-                _instance = FindAnyObjectByType<Chessboard>();
-            }
-
-            if (_instance == null)
-            {
-                var obj = new GameObject("Chessboard");
-                _instance = obj.AddComponent<Chessboard>();
-            }
-
-            return _instance;
-        }
-    }
-
-    [Header("Game Rules")] [SerializeField] [Range(0, 8)]
-    int surviveDownThreshold = 2;
-
-    [SerializeField] [Range(0, 8)] int surviveUpThreshold = 3;
-    [SerializeField] [Range(0, 8)] int bornDownThreshold = 3;
-    [SerializeField] [Range(0, 8)] int bornUpThreshold = 3;
-    [SerializeField] int randomDensity = 3;
-
-    [Header("Board Settings")] [SerializeField][Range(0.1f, 1)]
-    float updateInterval = 1f;
-
-    [SerializeField] GameObject updateStatusText;
-
-    [Header("Optimization")] [SerializeField]
-    int coroutineTimes = 2;
-
-    [HideInInspector] public bool canPutCell = true;
-
-    bool _canUpdate;
-    public bool isExtendable;
-    bool _isContinuousUpdate;
-    bool _isClear;
-    float _nextUpdateTime;
+    [Header("Board Settings")] 
+    [SerializeField][Range(0.1f, 1)] float _updateInterval = 1f;
+    [SerializeField] TextMeshProUGUI _updateStatusText;
+    
+    bool _canPutCell = true;
+    bool _isUpdating;
     Camera _camera;
     CameraMove _cameraMove;
-    Text _updateStatusText;
     CellPool _pool;
 
-    CellPool.Cell[,] Board { get; set; }
-    Dictionary<Vector2Int, CellPool.Cell> grid = new();
+    readonly Dictionary<Vector2Int, CellPool.Cell> _grid = new();
 
     int CountLiveNeighbors(Vector2Int pos)
     {
@@ -74,8 +42,8 @@ public class Chessboard : MonoBehaviour
             for (var j = -1; j <= 1; j++)
             {
                 var neighborPos = new Vector2Int(pos.x + i, pos.y + j);
-                if (neighborPos != pos && grid.ContainsKey(neighborPos) &&
-                    grid[neighborPos].Status)
+                if (neighborPos != pos && _grid.ContainsKey(neighborPos) &&
+                    _grid[neighborPos].Status)
                 {
                     count++;
                 }
@@ -85,18 +53,11 @@ public class Chessboard : MonoBehaviour
         return count;
     }
 
-
-    void UpdateStatus(Vector2Int pos)
-    {
-        var cell = grid[pos];
-        cell.UpdateStatus();
-    }
-
-    void UpdateGrid()
+    async UniTask UpdateGrid()
     {
         var newGrid = new Dictionary<Vector2Int, bool>();
-        var cellsToCheck = new HashSet<Vector2Int>(grid.Keys);
-        foreach (var pos in grid.Keys)
+        var cellsToCheck = new HashSet<Vector2Int>(_grid.Keys);
+        foreach (var pos in _grid.Keys)
         {
             for (var i = -1; i <= 1; i++)
             {
@@ -111,12 +72,12 @@ public class Chessboard : MonoBehaviour
         foreach (var pos in cellsToCheck)
         {
             var liveNeighbors = CountLiveNeighbors(pos);
-            var isAlive = grid.ContainsKey(pos) && grid[pos].Status;
-            if (isAlive && (liveNeighbors < surviveDownThreshold || liveNeighbors > surviveUpThreshold))
+            var isAlive = _grid.ContainsKey(pos) && _grid[pos].Status;
+            if (isAlive && (liveNeighbors < _surviveDownThreshold || liveNeighbors > _surviveUpThreshold))
             {
                 newGrid[pos] = false;
             }
-            else if (!isAlive && (liveNeighbors >= bornDownThreshold && liveNeighbors <= bornUpThreshold))
+            else if (!isAlive && (liveNeighbors >= _bornDownThreshold && liveNeighbors <= _bornUpThreshold))
             {
                 newGrid[pos] = true;
             }
@@ -130,167 +91,221 @@ public class Chessboard : MonoBehaviour
         {
             if (item.Value)
             {
-                if (!grid.ContainsKey(item.Key))
+                if (!_grid.ContainsKey(item.Key))
                 {
-                    var pos = item.Key;
-                    var cell = _pool.Pop();
-                    cell.Status = true;
-                    grid[item.Key] = cell;
+                    _grid[item.Key] = await _pool.Pop();
                 }
 
-                grid[item.Key].SetPos(item.Key, transform);
+                _grid[item.Key].SetPos(item.Key);
             }
             else
             {
-                if (grid.ContainsKey(item.Key))
+                if (_grid.ContainsKey(item.Key))
                 {
-                    _pool.Push(grid[item.Key]);
-                    grid.Remove(item.Key);
+                    _pool.Push(_grid[item.Key]);
+                    _grid.Remove(item.Key);
                 }
             }
         }
     }
 
-    void MouseInput()
+    async void MouseInput()
     {
-        if (!Input.GetMouseButtonUp(0) || !canPutCell || _cameraMove.isMoving) return;
+        if (!_canPutCell || _cameraMove.IsMoving) return;
 
-        // 鼠标不在UI上
-        if (EventSystem.current.IsPointerOverGameObject()) return;
+        // 确保鼠标不在UI上，替代下一行
+        // if (EventSystem.current.IsPointerOverGameObject()) return;
+        var pointerEventData = new PointerEventData(EventSystem.current)
+        {
+            position = Mouse.current.position.ReadValue()
+        };
+
+        List<RaycastResult> result = new();
+        EventSystem.current.RaycastAll(pointerEventData, result);
+        if (result.Count > 0) return;
+        
 
         // Debug.Log("MouseDown");
 
         // 根据鼠标位置计算棋盘位置和矩阵位置
-        var mousePosition = _camera.ScreenToWorldPoint(Input.mousePosition);
-        var localMousePosition = transform.InverseTransformPoint(mousePosition) /
-                                 (CellPool.Instance.cellSize + CellPool.Instance.cellInterval);
+        var mousePosition = _camera.ScreenToWorldPoint(Mouse.current.position.ReadValue());
+        var localMousePosition = transform.InverseTransformPoint(mousePosition);
         var posX = Convert.ToInt32(localMousePosition.x);
         var posY = Convert.ToInt32(localMousePosition.y);
         var pos = new Vector2Int(posX, posY);
         // Debug.Log(posX);
         // Debug.Log(posY);
 
-        if (!grid.ContainsKey(pos))
+        if (!_grid.ContainsKey(pos))
         {
-            grid[pos] = _pool.Pop();
-            grid[pos].SetPos(pos, transform);
+            _grid[pos] = await _pool.Pop();
+            _grid[pos].SetPos(pos);
         }
         else
         {
-            _pool.Push(grid[pos]);
-            grid.Remove(pos);
+            _pool.Push(_grid[pos]);
+            _grid.Remove(pos);
         }
     }
 
-    public void Clear()
+    [Button]
+    public async void UpdateOnce()
     {
-        _isClear = true;
-    }
-
-    public void UpdateOnce()
-    {
-        _canUpdate = true;
-        _isContinuousUpdate = false;
+        System.Diagnostics.Stopwatch stopwatch = new();
+        stopwatch.Start();
+        
+        await UpdateGrid();
         _updateStatusText.text = "Finished";
+        
+        Debug.Log(transform.childCount);
+        stopwatch.Stop();
+        double updateTime = stopwatch.Elapsed.TotalMilliseconds;
+        if(updateTime > 1)
+            Debug.Log($"update time: {updateTime}");
     }
 
-    public void StartUpdate()
+    [Button]
+    public async void StartUpdate()
     {
-        _isContinuousUpdate = true;
-        _canUpdate = true;
+        if (_isUpdating) return;
+        
+        _isUpdating = true;
         _updateStatusText.text = "On";
-        canPutCell = false;
+        _canPutCell = false;
+
+        while (_isUpdating)
+        {
+            await UpdateGrid();
+            await UniTask.Delay((int)(_updateInterval * 1000));
+        }
     }
 
+    [Button]
     public void StopUpdate()
     {
-        _canUpdate = false;
-        _isContinuousUpdate = false;
+        _isUpdating = false;
         _updateStatusText.text = "Off";
-        canPutCell = true;
+        _canPutCell = true;
     }
 
-    public void RandomiseBoard()
+    [Button]
+    public async UniTask Randomize(Vector2Int size)
     {
         var rd = new Random();
-        foreach (var cell in Board)
+        for (var i = -size.x; i < size.x; i++)
         {
-            cell.NextStatus = rd.Next(randomDensity) < 1;
-            cell.UpdateStatus();
+            for (var j = -size.y; j < size.y; j++)
+            {
+                var pos = new Vector2Int(i, j);
+                if (rd.Next(_randomDensity) < 1)
+                {
+                    if (_grid.ContainsKey(pos)) continue;
+                    
+                    _grid[pos] = await _pool.Pop();
+                    _grid[pos].SetPos(pos);
+                }
+                else
+                {
+                    if (!_grid.TryGetValue(pos, out var cell)) continue;
+                    
+                    _pool.Push(cell);
+                    _grid.Remove(pos);
+                }
+            }
+            
+        }
+    }
+    
+    [Button]
+    public void Clear()
+    {
+        StopUpdate();
+        foreach (var item in _grid)
+        {
+            item.Value.Destroy();
+        }
+        _grid.Clear();
+        _pool.Clear();
+        GC.Collect();
+    }
+
+    void UpdateAction(InputAction.CallbackContext context)
+    {
+        if (context.started)
+        {
+            UpdateOnce();
+        }
+
+        if (context.performed)
+        {
+            StartUpdate();
+        }
+
+        if (context.canceled && _isUpdating)
+        {
+            StopUpdate();
         }
     }
 
+    void CellAction(InputAction.CallbackContext context)
+    {
+        MouseInput();
+    }
+    
+    void RegisterInput()
+    {
+        var playerInput = this.GetSystem<InputSystem>().PlayerActionMap;
+        playerInput.Update.started += UpdateAction;
+        playerInput.Update.performed += UpdateAction;
+        playerInput.Update.canceled += UpdateAction;
+        playerInput.Cell.performed += CellAction;
+    }
+
+    void UnregisterInput()
+    {
+        var playerInput = this.GetSystem<InputSystem>().PlayerActionMap;
+        playerInput.Update.performed -= UpdateAction;
+        playerInput.Update.performed -= UpdateAction;
+        playerInput.Update.canceled -= UpdateAction;
+        playerInput.Cell.performed -= CellAction;
+    }
+    
     void Awake()
     {
-        if (Instance != this)
-        {
-            DestroyImmediate(this);
-            return;
-        }
-
-        Application.targetFrameRate = 60;
-
+        // Application.targetFrameRate = 60;
         _camera = Camera.main;
-        _updateStatusText = updateStatusText.GetComponent<Text>();
-        _pool = CellPool.Instance;
+        _pool = GetComponent<CellPool>();
+    }
+
+    void OnEnable()
+    {
+        this.GetSystem<InputSystem>().PlayerActionMap.Enable();
+        RegisterInput();
     }
 
     void Start()
     {
-        
-        _nextUpdateTime = updateInterval;
         _cameraMove = _camera.GetComponent<CameraMove>();
     }
 
     void Update()
     {
-        // System.Diagnostics.Stopwatch stopwatch = new();
-        // stopwatch.Start();
-        if (_canUpdate && !_isContinuousUpdate)
-        {
-            UpdateGrid();
-            _canUpdate = false;
-        }
-
-        if (_canUpdate && _isContinuousUpdate)
-        {
-            if (_nextUpdateTime < 0)
-            {
-                UpdateGrid();
-                _nextUpdateTime = updateInterval;
-            }
-            else
-            {
-                _nextUpdateTime -= Time.deltaTime;
-            }
-        }
-
-        if (Input.GetKeyUp(KeyCode.Space))
-        {
-            UpdateOnce();
-        }
-        
-        MouseInput();
-
-        // Debug.Log(transform.childCount);
-        // stopwatch.Stop();
-        // double updateTime = stopwatch.Elapsed.TotalMilliseconds;
-        // if(updateTime > 1)
-        //     Debug.Log($"update time: {updateTime}");
     }
 
-    void LateUpdate()
+    void OnDisable()
     {
-        if (_isClear)
-        {
-            foreach (var item in grid)
-            {
-                _pool.Push(item.Value);
-            }
+        this.GetSystem<InputSystem>().PlayerActionMap.Disable();
+        UnregisterInput();
+    }
 
-            grid = new Dictionary<Vector2Int, CellPool.Cell>();
-            StopUpdate();
-            _isClear = false;
-        }
+    void OnDestroy()
+    {
+        Clear();
+        GC.Collect();
+    }
+
+    public IArchitecture GetArchitecture()
+    {
+        return GameOfLife.Interface;
     }
 }
