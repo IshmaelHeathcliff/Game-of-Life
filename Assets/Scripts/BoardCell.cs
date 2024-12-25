@@ -22,14 +22,12 @@ public class BoardCell : MonoBehaviour //, IPointerEnterHandler, IPointerExitHan
 
     public void Disable()
     {
-        var c = _renderer.color;
-        _renderer.color = new Color(c.r, c.g, c.b, 0.2f);
+        gameObject.SetActive(false);
     }
 
     public void Enable()
     {
-        var c = _renderer.color;
-        _renderer.color = new Color(c.r, c.g, c.b, 1);
+        gameObject.SetActive(true);
     }
 
     public void Hide()

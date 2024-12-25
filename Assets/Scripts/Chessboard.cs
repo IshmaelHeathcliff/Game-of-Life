@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Serialization;
@@ -9,17 +10,19 @@ using Random = System.Random;
 public class Chessboard : MonoBehaviour
 {
     static Chessboard _instance;
-    public static Chessboard Instance {
+
+    public static Chessboard Instance
+    {
         get
         {
             if (_instance != null)
             {
                 return _instance;
             }
-            
+
             if (_instance == null)
             {
-                _instance = FindObjectOfType<Chessboard>();
+                _instance = FindAnyObjectByType<Chessboard>();
             }
 
             if (_instance == null)
@@ -27,27 +30,28 @@ public class Chessboard : MonoBehaviour
                 var obj = new GameObject("Chessboard");
                 _instance = obj.AddComponent<Chessboard>();
             }
+
             return _instance;
         }
     }
 
-    [Header("Game Rules")]
-    [SerializeField][Range(0, 8)] int surviveDownThreshold = 2;
-    [SerializeField][Range(0, 8)] int surviveUpThreshold = 3;
-    [SerializeField][Range(0, 8)] int bornDownThreshold = 3;
-    [SerializeField][Range(0, 8)] int bornUpThreshold = 3;
-    [SerializeField] int randomDensity = 3;
-    
-    [Header("Board Settings")]
-    [SerializeField] float updateInterval = 1f;
-    [SerializeField] GameObject updateStatusText;
-    public int size  = 21;
-    public int sizeLimit = 150;
+    [Header("Game Rules")] [SerializeField] [Range(0, 8)]
+    int surviveDownThreshold = 2;
 
-    [Header("Optimization")]
-    [SerializeField] int coroutineTimes = 2;
-    
-    [HideInInspector]public bool canPutCell = true;
+    [SerializeField] [Range(0, 8)] int surviveUpThreshold = 3;
+    [SerializeField] [Range(0, 8)] int bornDownThreshold = 3;
+    [SerializeField] [Range(0, 8)] int bornUpThreshold = 3;
+    [SerializeField] int randomDensity = 3;
+
+    [Header("Board Settings")] [SerializeField][Range(0.1f, 1)]
+    float updateInterval = 1f;
+
+    [SerializeField] GameObject updateStatusText;
+
+    [Header("Optimization")] [SerializeField]
+    int coroutineTimes = 2;
+
+    [HideInInspector] public bool canPutCell = true;
 
     bool _canUpdate;
     public bool isExtendable;
@@ -60,196 +64,129 @@ public class Chessboard : MonoBehaviour
     CellPool _pool;
 
     CellPool.Cell[,] Board { get; set; }
+    Dictionary<Vector2Int, CellPool.Cell> grid = new();
 
-
-    
-    void CountNeighborhood(int x, int y)
+    int CountLiveNeighbors(Vector2Int pos)
     {
-        var liveNeighbors = 0;
+        var count = 0;
         for (var i = -1; i <= 1; i++)
         {
             for (var j = -1; j <= 1; j++)
             {
-                if(i==0 && j==0) continue;
-                var nbX = x + i;
-                var nbY = y + j;
-                if (nbX < 0) nbX = size - 1;
-                if (nbX > size - 1) nbX = 0;
-                if (nbY < 0) nbY = size - 1;
-                if (nbY > size - 1) nbY = 0;
-                liveNeighbors += Board[nbX, nbY].Status ? 1 : 0;
+                var neighborPos = new Vector2Int(pos.x + i, pos.y + j);
+                if (neighborPos != pos && grid.ContainsKey(neighborPos) &&
+                    grid[neighborPos].Status)
+                {
+                    count++;
+                }
             }
         }
 
-        // Debug.Log(liveNeighbors);
-        
-        if (liveNeighbors < surviveDownThreshold || liveNeighbors > surviveUpThreshold)
-            Board[x, y].NextStatus = false;
-        else if (Board[x, y].Status)
-            Board[x, y].NextStatus = true;
-        else if (liveNeighbors >= bornDownThreshold && liveNeighbors <= bornUpThreshold)
-            Board[x, y].NextStatus = true;
-        else
-            Board[x, y].NextStatus = false;
+        return count;
     }
 
-    void UpdateStatus(int x, int y)
+
+    void UpdateStatus(Vector2Int pos)
     {
-        var cell = Board[x, y];
+        var cell = grid[pos];
         cell.UpdateStatus();
     }
-    IEnumerator UpdateBoard()
+
+    void UpdateGrid()
     {
-        // System.Diagnostics.Stopwatch stopwatch = new();
-        // stopwatch.Start();
-
-        for(var c=0; c < coroutineTimes; c++)
+        var newGrid = new Dictionary<Vector2Int, bool>();
+        var cellsToCheck = new HashSet<Vector2Int>(grid.Keys);
+        foreach (var pos in grid.Keys)
         {
-            // stopwatch.Restart();
-            for (var i = c; i < size; i+=coroutineTimes)
+            for (var i = -1; i <= 1; i++)
             {
-                for (var j = 0; j < size; j++)
+                for (var j = -1; j <= 1; j++)
                 {
-                    // int x = i;
-                    // int y = j;
-                    // Thread t = new Thread(() => CountNeighborhood(x, y));
-                    // t.Start();
-                    CountNeighborhood(i, j);
+                    var neighborPos = new Vector2Int(pos.x + i, pos.y + j);
+                    cellsToCheck.Add(neighborPos);
                 }
             }
-            
-            // stopwatch.Stop();
-            // var neighborTime = stopwatch.Elapsed.TotalMilliseconds;
-            // Debug.Log($"neighbor time: {neighborTime}");
-
-            yield return null;
         }
-        // Debug.Log("邻居计算结束");
 
-        // 根据存活邻居更新状态
-        for(var c=0; c < coroutineTimes; c++)
+        foreach (var pos in cellsToCheck)
         {
-            // stopwatch.Restart();
-            for (var i = c; i < size; i+=coroutineTimes)
+            var liveNeighbors = CountLiveNeighbors(pos);
+            var isAlive = grid.ContainsKey(pos) && grid[pos].Status;
+            if (isAlive && (liveNeighbors < surviveDownThreshold || liveNeighbors > surviveUpThreshold))
             {
-                for (var j = 0; j < size; j++)
+                newGrid[pos] = false;
+            }
+            else if (!isAlive && (liveNeighbors >= bornDownThreshold && liveNeighbors <= bornUpThreshold))
+            {
+                newGrid[pos] = true;
+            }
+            else
+            {
+                newGrid[pos] = isAlive;
+            }
+        }
+
+        foreach (var item in newGrid)
+        {
+            if (item.Value)
+            {
+                if (!grid.ContainsKey(item.Key))
                 {
-                    // int x = i;
-                    // int y = j;
-                    // Thread t = new Thread(() => CountNeighborhood(x, y));
-                    // t.Start();
-                    UpdateStatus(i, j);
+                    var pos = item.Key;
+                    var cell = _pool.Pop();
+                    cell.Status = true;
+                    grid[item.Key] = cell;
+                }
+
+                grid[item.Key].SetPos(item.Key, transform);
+            }
+            else
+            {
+                if (grid.ContainsKey(item.Key))
+                {
+                    _pool.Push(grid[item.Key]);
+                    grid.Remove(item.Key);
                 }
             }
-            
-            // stopwatch.Stop();
-            // var updateTime = stopwatch.Elapsed.TotalMilliseconds;
-            // Debug.Log($"update time: {updateTime}");
-            
-            yield return null;
         }
-        // Debug.Log("邻居计算结束");
-        
-
-
-        // stopwatch.Restart();
-        // 根据倒数第三圈是否有存活Cell扩展Board
-        if (!isExtendable) yield break;
-        if (size < sizeLimit) ;
-        {
-            for (var i = 2; i < size - 2; i++)
-            {
-                if (!Board[i, 2].Status && !Board[i, size - 3].Status && !Board[2, i].Status &&
-                    !Board[size - 3, i].Status) continue;
-                ExtendTo(size / 2, size / 2);
-                yield break;
-            }
-        }
-
-        // stopwatch.Stop();
-        // var extendTime = stopwatch.Elapsed.TotalMilliseconds;
-        // Debug.Log($"extend time: {extendTime}");
     }
 
     void MouseInput()
     {
         if (!Input.GetMouseButtonUp(0) || !canPutCell || _cameraMove.isMoving) return;
-        
+
         // 鼠标不在UI上
         if (EventSystem.current.IsPointerOverGameObject()) return;
-        
+
         // Debug.Log("MouseDown");
-            
+
         // 根据鼠标位置计算棋盘位置和矩阵位置
         var mousePosition = _camera.ScreenToWorldPoint(Input.mousePosition);
-        var localMousePosition = transform.InverseTransformPoint(mousePosition) / (CellPool.Instance.cellSize + CellPool.Instance.cellInterval);
+        var localMousePosition = transform.InverseTransformPoint(mousePosition) /
+                                 (CellPool.Instance.cellSize + CellPool.Instance.cellInterval);
         var posX = Convert.ToInt32(localMousePosition.x);
         var posY = Convert.ToInt32(localMousePosition.y);
+        var pos = new Vector2Int(posX, posY);
         // Debug.Log(posX);
         // Debug.Log(posY);
 
-        // 调整矩阵状态
-        if (isExtendable)
+        if (!grid.ContainsKey(pos))
         {
-            if (!ExtendTo(posX, posY)) return;
-            var currentCell = Board[-posY + size / 2, posX + size / 2];
-            currentCell.ChangeStatus();
+            grid[pos] = _pool.Pop();
+            grid[pos].SetPos(pos, transform);
         }
         else
         {
-            var i = -posY + size / 2;
-            var j = posX + size / 2;
-            if (i < size && i >= 0 && j < size && j >= 0)
-            {
-                // Debug.Log($"i:{i}, j:{j}, Size:{size}");
-                var currentCell = Board[i, j];
-                currentCell.ChangeStatus();
-            }
+            _pool.Push(grid[pos]);
+            grid.Remove(pos);
         }
-    }
-    
-    bool ExtendTo(int x, int y)
-    {
-        y = Math.Abs(y);
-        x = Math.Abs(x);
-
-        if (sizeLimit < 2 * y + 1 || sizeLimit < 2 * x + 1) return false;
-        if (size > 4 * y + 1 && size > 4 * x + 1) return true;
-        
-        var preSize = size;
-        
-        var newSize1 = Math.Min(2 * size + 1, sizeLimit);
-        var newSize2 = Math.Max(Math.Min(sizeLimit, 4 * y + 1), Math.Min(sizeLimit, 4 * x + 1));
-        size = Math.Max(newSize1, newSize2);
-
-
-        var newBoard = new CellPool.Cell[size, size];
-        for (var i = 0; i < size; i++)
-        {
-            for (var j = 0; j < size; j++)
-            {
-                var offset = (size - preSize) / 2;
-                if (i >= offset && i <= offset + preSize - 1 &&
-                    j >= offset && j <= offset + preSize - 1)
-                {
-                    newBoard[i, j] = Board[i - offset, j - offset];
-                }
-                else
-                {
-                    newBoard[i, j] = _pool.GetCell();
-                    newBoard[i, j].SetPos(i, j, transform);
-                }
-            }
-        }
-        Board = newBoard;
-        return true;
     }
 
     public void Clear()
     {
         _isClear = true;
     }
-    
+
     public void UpdateOnce()
     {
         _canUpdate = true;
@@ -271,27 +208,6 @@ public class Chessboard : MonoBehaviour
         _isContinuousUpdate = false;
         _updateStatusText.text = "Off";
         canPutCell = true;
-    }
-    
-    public void InitialiseBoard()
-    {
-        if (Board != null)
-        {
-            foreach (var cell in Board)
-            {
-               _pool.AddCell(cell); 
-            }
-        }
-        
-        Board = new CellPool.Cell[size, size];
-        for (var i = 0; i < size; i++)
-        {
-            for (var j = 0; j < size; j++)
-            {
-                Board[i, j] = _pool.GetCell();
-                Board[i, j].SetPos(i, j, transform);
-            }
-        }
     }
 
     public void RandomiseBoard()
@@ -317,7 +233,6 @@ public class Chessboard : MonoBehaviour
         _camera = Camera.main;
         _updateStatusText = updateStatusText.GetComponent<Text>();
         _pool = CellPool.Instance;
-        sizeLimit = sizeLimit / 2 * 2 + 1;
     }
 
     void Start()
@@ -325,7 +240,6 @@ public class Chessboard : MonoBehaviour
         
         _nextUpdateTime = updateInterval;
         _cameraMove = _camera.GetComponent<CameraMove>();
-        InitialiseBoard();
     }
 
     void Update()
@@ -334,7 +248,7 @@ public class Chessboard : MonoBehaviour
         // stopwatch.Start();
         if (_canUpdate && !_isContinuousUpdate)
         {
-            StartCoroutine(UpdateBoard());
+            UpdateGrid();
             _canUpdate = false;
         }
 
@@ -342,7 +256,7 @@ public class Chessboard : MonoBehaviour
         {
             if (_nextUpdateTime < 0)
             {
-                StartCoroutine(UpdateBoard());
+                UpdateGrid();
                 _nextUpdateTime = updateInterval;
             }
             else
@@ -369,14 +283,12 @@ public class Chessboard : MonoBehaviour
     {
         if (_isClear)
         {
-            for (var i = 0; i < size; i++)
+            foreach (var item in grid)
             {
-                for (var j = 0; j < size; j++)
-                {
-                    Board[i, j].Disable();
-                }
+                _pool.Push(item.Value);
             }
 
+            grid = new Dictionary<Vector2Int, CellPool.Cell>();
             StopUpdate();
             _isClear = false;
         }

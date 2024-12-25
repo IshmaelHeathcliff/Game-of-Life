@@ -18,7 +18,7 @@ public class CellPool : MonoBehaviour
             
             if (_instance == null)
             {
-                _instance = FindObjectOfType<CellPool>();
+                _instance = FindAnyObjectByType<CellPool>();
             }
 
             if (_instance == null)
@@ -34,12 +34,12 @@ public class CellPool : MonoBehaviour
     [SerializeField] int poolSizeStep = 500;
     
     public float cellInterval = 0f;
-    public float cellSize = 0.5f;
+    public float cellSize = 1f;
     public GameObject cellObject;
 
     Transform _transform;
     
-    readonly List<Cell> _cellPool = new();
+    readonly Stack<Cell> _cellPool = new();
     
 
     public class Cell
@@ -54,7 +54,7 @@ public class CellPool : MonoBehaviour
             _cellObject = Instantiate(cellObject, transform);
             _boardCell = _cellObject.GetComponent<BoardCell>();
             
-            _boardCell.Hide();
+            _boardCell.Disable();
         }
 
         // public bool CanChange => _boardCell.CanChange;
@@ -64,12 +64,11 @@ public class CellPool : MonoBehaviour
             _cellObject.transform.parent = transform;
         }
 
-        public void SetPos(int i, int j, Transform transform)
+        public void SetPos(Vector2Int pos, Transform transform)
         {
-            Vector3 pos = new(j - Chessboard.Instance.size / 2, Chessboard.Instance.size / 2 - i);
             _cellObject.name = $"BoardCell{pos.x}, {pos.y}";
             _cellObject.transform.parent = transform;
-            _cellObject.transform.localPosition = pos * (Instance.cellSize + Instance.cellInterval);
+            _cellObject.transform.localPosition = new Vector2(pos.x, pos.y) * (Instance.cellSize + Instance.cellInterval);
         }
 
         public void Enable()
@@ -109,35 +108,27 @@ public class CellPool : MonoBehaviour
         for (var i = 0; i < n; i++)
         {
             var cell = new Cell(cellObject, _transform);
-            _cellPool.Add(cell);
+            _cellPool.Push(cell);
         }
     }
     
-    public Cell GetCell()
+    public Cell Pop()
     {
-        if(_cellPool.Count > 0)
-        {
-            var cell = _cellPool[0];
-            cell.Disable();
-            _cellPool.RemoveAt(0);
-            return cell;
-        }
-        else
+        if(_cellPool.Count <= 0)
         {
             // Debug.Log("pool insufficient");
             IncreasePoolSize(poolSizeStep);
-            var cell = _cellPool[0];
-            cell.Disable();
-            _cellPool.RemoveAt(0);
-            return cell;
         }
+
+        var cell = _cellPool.Pop();
+        cell.Enable();
+        return cell;
     }
 
-    public void AddCell(Cell cell)
+    public void Push(Cell cell)
     {
-        _cellPool.Add(cell);
-        cell.InitialisePos(_transform);
-        cell.Hide();
+        _cellPool.Push(cell);
+        cell.Disable();
     }
 
     void Awake()
@@ -149,12 +140,5 @@ public class CellPool : MonoBehaviour
 
     void LateUpdate()
     {
-        var size = Chessboard.Instance.size;
-        var sizeLimit = Chessboard.Instance.sizeLimit;
-        if (size >= sizeLimit) return;
-        if (_cellPool.Count < 3 * size * size + 4 * size + 1)
-        {
-            IncreasePoolSize(3 * size  + 4);
-        }
     }
 }
