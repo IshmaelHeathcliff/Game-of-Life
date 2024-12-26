@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using QFramework;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Serialization;
@@ -23,24 +24,16 @@ public class CameraMove : MonoBehaviour, IController
     
     public bool IsMoving => _isMoving && _isZooming;
 
-    
-    void Zoom()
+    [Button]
+    void ResetView()
     {
-        var size = _camera.orthographicSize;
-        // 背景格子缩放
-        if (Mathf.Abs(size - _targetSize) > 0.01f && Time.deltaTime < _zoomSpeed)
-        {
-            _camera.orthographicSize += (_targetSize - size) * Time.deltaTime / _zoomSpeed;
-            _isZooming = true;
-        }
-        else
-        {
-            _camera.orthographicSize = _targetSize;
-            _isZooming = false;
-        }
-       
+        _camera.orthographicSize = 5f;
+        transform.position = new Vector3(0, 0, -10);
+        _background.position = Vector3.zero;
+        _background.localScale = Vector3.one;
     }
     
+
     async void MoveAction(InputAction.CallbackContext context)
     {
         if (context.performed)
@@ -48,6 +41,7 @@ public class CameraMove : MonoBehaviour, IController
             var startMousePosition = _camera.ScreenToWorldPoint(Mouse.current.position.ReadValue());
             var startPosition = transform.position;
             _isMoving = true;
+            
             
             while (_isMoving)
             {
@@ -63,6 +57,12 @@ public class CameraMove : MonoBehaviour, IController
                     transform.position = targetPosition;
                 }
 
+                if (Vector2.Distance(_background.position, transform.position) > 10)
+                {
+                    var direction = transform.position - _background.position;
+                    _background.position += new Vector3((int)direction.x, (int)direction.y, 0);
+                }
+
                 await UniTask.WaitForEndOfFrame();
             }
         }
@@ -73,7 +73,7 @@ public class CameraMove : MonoBehaviour, IController
         }
     }
 
-    void ZoomAction(InputAction.CallbackContext context)
+    async void ZoomAction(InputAction.CallbackContext context)
     {
         var scroll = context.ReadValue<Vector2>().y;
         switch (scroll)
@@ -97,7 +97,30 @@ public class CameraMove : MonoBehaviour, IController
         }
         
         var targetScale = (int)_targetSize / 5;
-        _background.localScale = new Vector3(targetScale, targetScale, 1);       
+        if (targetScale % 2f != 0)
+        {
+            _background.localScale = new Vector3(targetScale, targetScale, 1);
+        }
+
+        if (_isZooming) return;
+        _isZooming = true;
+        while (_isZooming)
+        {
+            
+            var size = _camera.orthographicSize;
+            // 背景格子缩放
+            if (Mathf.Abs(size - _targetSize) > 0.01f && Time.deltaTime < _zoomSpeed)
+            {
+                _camera.orthographicSize += (_targetSize - size) * Time.deltaTime / _zoomSpeed;
+            }
+            else
+            {
+                _camera.orthographicSize = _targetSize;
+                _isZooming = false;
+            }
+            
+            await UniTask.WaitForEndOfFrame();
+        }
     }
 
     void RegisterInput()
@@ -131,7 +154,6 @@ public class CameraMove : MonoBehaviour, IController
 
     void Update()
     {
-        Zoom();
     }
 
     void OnDisable()
